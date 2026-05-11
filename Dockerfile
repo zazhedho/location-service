@@ -22,6 +22,7 @@ RUN apk add --no-cache ca-certificates tzdata
 
 COPY --from=builder /out/location-service /app/location-service
 COPY migrations /app/migrations
+COPY data /app/data
 COPY entrypoint.sh /app/entrypoint.sh
 
 RUN chmod +x /app/entrypoint.sh
@@ -29,6 +30,8 @@ RUN chmod +x /app/entrypoint.sh
 ENV APP_ENV=production
 ENV PORT=8088
 ENV PATH_MIGRATE=migrations/000001_init.sql
+ENV AUTO_SEED=true
+ENV SEED_FILE=data/wilayah.sql
 
 EXPOSE 8088
 

@@ -389,10 +389,15 @@ Optional startup actions:
 ```env
 RUN_MIGRATION=true
 RUN_IMPORT=true
-IMPORT_FILE=/data/wilayah.sql
+IMPORT_FILE=/app/data/wilayah.sql
+AUTO_SEED=true
+AUTO_SEED_REQUIRED=false
+SEED_FILE=data/wilayah.sql
 ```
 
-Import still needs local access to `wilayah.sql`, so for first import use local `go run`, or mount/copy the file into the container before running import.
+On `serve`, `AUTO_SEED=true` checks `raw_locations`. If the table is empty, the service imports `SEED_FILE` in one transaction using PostgreSQL `COPY`; if data already exists, startup skips seeding. The Docker image includes `data/wilayah.sql`, so first deploy can seed without mounting an extra file.
+
+`RUN_IMPORT=true` remains available for forced manual import from `IMPORT_FILE`.
 
 ## Postman
 

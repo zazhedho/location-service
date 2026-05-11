@@ -11,6 +11,7 @@ import (
 
 	importer "location-service/cmd/importer"
 	"location-service/infrastructure/database"
+	"location-service/internal/bootstrap/locationseed"
 	"location-service/internal/router"
 	"location-service/utils"
 )
@@ -61,6 +62,9 @@ func serve() error {
 	defer db.Close()
 	if err := database.Migrate(db); err != nil {
 		return fmt.Errorf("migrate schema: %w", err)
+	}
+	if err := locationseed.Run(context.Background(), db); err != nil {
+		return fmt.Errorf("seed data: %w", err)
 	}
 
 	addr := ":" + strings.TrimPrefix(*port, ":")
