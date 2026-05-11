@@ -1,0 +1,34 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: location-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: location
+      POSTGRES_PASSWORD: location
+      POSTGRES_DB: location
+    ports:
+      - "5438:5432"
+    volumes:
+      - location_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U location -d location"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    container_name: location-service
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://location:location@postgres:5432/location?sslmode=disable
+      PORT: 8088
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8088:8088"
+
+volumes:
+  location_pgdata:

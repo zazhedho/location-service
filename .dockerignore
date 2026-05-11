@@ -1,0 +1,11 @@
+.git
+.gitignore
+.gocache
+.idea
+.env
+coverage.out
+location-service
+tmp
+*.log
+postman
+README.md

@@ -1,0 +1,282 @@
+{
+  "info": {
+    "_postman_id": "9e6ce8a5-69a8-4e45-9f86-location-service",
+    "name": "Location Service",
+    "description": "Read-only API for Indonesian administrative locations.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8088",
+      "type": "string"
+    },
+    {
+      "key": "province_code",
+      "value": "11",
+      "type": "string"
+    },
+    {
+      "key": "regency_code",
+      "value": "11.01",
+      "type": "string"
+    },
+    {
+      "key": "regency_short_code",
+      "value": "01",
+      "type": "string"
+    },
+    {
+      "key": "district_code",
+      "value": "11.01.01",
+      "type": "string"
+    },
+    {
+      "key": "district_short_code",
+      "value": "01",
+      "type": "string"
+    },
+    {
+      "key": "search_query",
+      "value": "aceh",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Healthcheck",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/healthz",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "healthz"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Locations",
+      "item": [
+        {
+          "name": "Get Provinces",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/locations/provinces",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "locations",
+                "provinces"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Regencies - Full Code",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/locations/regencies?province_code={{province_code}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "locations",
+                "regencies"
+              ],
+              "query": [
+                {
+                  "key": "province_code",
+                  "value": "{{province_code}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Regencies - Short Code",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/locations/regencies?province_code={{province_code}}&code_format=short",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "locations",
+                "regencies"
+              ],
+              "query": [
+                {
+                  "key": "province_code",
+                  "value": "{{province_code}}"
+                },
+                {
+                  "key": "code_format",
+                  "value": "short"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Districts - Full Code",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/locations/districts?regency_code={{regency_code}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "locations",
+                "districts"
+              ],
+              "query": [
+                {
+                  "key": "regency_code",
+                  "value": "{{regency_code}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Districts - Short Code",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/locations/districts?province_code={{province_code}}&regency_code={{regency_short_code}}&code_format=short",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "locations",
+                "districts"
+              ],
+              "query": [
+                {
+                  "key": "province_code",
+                  "value": "{{province_code}}"
+                },
+                {
+                  "key": "regency_code",
+                  "value": "{{regency_short_code}}"
+                },
+                {
+                  "key": "code_format",
+                  "value": "short"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Villages - Full Code",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/locations/villages?district_code={{district_code}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "locations",
+                "villages"
+              ],
+              "query": [
+                {
+                  "key": "district_code",
+                  "value": "{{district_code}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Villages - Short Code",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/locations/villages?province_code={{province_code}}&regency_code={{regency_short_code}}&district_code={{district_short_code}}&code_format=short",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "locations",
+                "villages"
+              ],
+              "query": [
+                {
+                  "key": "province_code",
+                  "value": "{{province_code}}"
+                },
+                {
+                  "key": "regency_code",
+                  "value": "{{regency_short_code}}"
+                },
+                {
+                  "key": "district_code",
+                  "value": "{{district_short_code}}"
+                },
+                {
+                  "key": "code_format",
+                  "value": "short"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search Locations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/locations/search?q={{search_query}}&limit=5",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "locations",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "{{search_query}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
