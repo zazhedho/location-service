@@ -38,11 +38,11 @@ func main() {
 }
 
 func command() string {
-	if len(strings.TrimSpace(utils.Env("COMMAND", ""))) > 0 {
-		return utils.Env("COMMAND", "")
-	}
 	if len(os.Args) > 1 {
 		return os.Args[1]
+	}
+	if len(strings.TrimSpace(utils.Env("COMMAND", ""))) > 0 {
+		return utils.Env("COMMAND", "")
 	}
 	return "serve"
 }

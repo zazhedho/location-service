@@ -9,6 +9,7 @@ Projects should not depend on external location APIs at runtime. This service be
 ## Stack
 
 - Go standard library HTTP server
+- Go 1.26
 - PostgreSQL
 - `github.com/lib/pq`
 
@@ -76,8 +77,9 @@ Main variables:
 ```env
 APP_ENV=development
 PORT=8088
-DATABASE_URL=postgres://location:location@localhost:5438/location?sslmode=disable
 PATH_MIGRATE=migrations/000001_init.sql
+COMMAND=serve
+DATABASE_URL=postgres://location:location@localhost:5438/location?sslmode=disable
 ```
 
 If `DATABASE_URL` is empty, the service builds a PostgreSQL DSN from:
@@ -89,6 +91,14 @@ DB_USERNAME=location
 DB_PASS=location
 DB_NAME=location
 DB_SSLMODE=disable
+```
+
+Docker entrypoint options:
+
+```env
+RUN_MIGRATION=false
+RUN_IMPORT=false
+IMPORT_FILE=/data/wilayah.sql
 ```
 
 ## Quick Start
