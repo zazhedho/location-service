@@ -50,7 +50,7 @@ func command() string {
 
 func serve() error {
 	fs := flag.NewFlagSet("serve", flag.ExitOnError)
-	port := fs.String("port", utils.Env("PORT", "8088"), "HTTP port")
+	port := fs.String("port", utils.Env("PORT", "8080"), "HTTP port")
 	if err := fs.Parse(commandArgs()); err != nil {
 		return err
 	}

@@ -76,7 +76,7 @@ Main variables:
 
 ```env
 APP_ENV=development
-PORT=8088
+PORT=8080
 PATH_MIGRATE=migrations/000001_init.sql
 COMMAND=serve
 DATABASE_URL=postgres://location:location@localhost:5438/location?sslmode=disable
@@ -130,7 +130,7 @@ go run . serve
 API runs at:
 
 ```text
-http://localhost:8088
+http://localhost:8080
 ```
 
 ## Commands

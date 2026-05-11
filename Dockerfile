@@ -28,12 +28,12 @@ COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
 ENV APP_ENV=production
-ENV PORT=8088
+ENV PORT=8080
 ENV PATH_MIGRATE=migrations/000001_init.sql
 ENV AUTO_SEED=true
 ENV SEED_FILE=data/wilayah.sql
 
-EXPOSE 8088
+EXPOSE 8080
 
 ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["serve"]
