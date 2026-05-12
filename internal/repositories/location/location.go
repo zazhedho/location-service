@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	domainlocation "location-service/internal/domain/location"
 	interfacelocation "location-service/internal/interfaces/location"
@@ -57,8 +58,23 @@ func codeExpression(codeFormat string) string {
 	return "code"
 }
 
+func isTransient(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "connection reset by peer") ||
+		strings.Contains(msg, "broken pipe") ||
+		strings.Contains(msg, "EOF") ||
+		strings.Contains(msg, "connection refused") ||
+		strings.Contains(msg, "bad connection")
+}
+
 func (r *repository) queryLocations(ctx context.Context, query string, args ...any) ([]domainlocation.Item, error) {
 	rows, err := r.db.QueryContext(ctx, query, args...)
+	if err != nil && isTransient(err) {
+		rows, err = r.db.QueryContext(ctx, query, args...)
+	}
 	if err != nil {
 		return nil, err
 	}

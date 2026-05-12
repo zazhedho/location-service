@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Location Service</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar">
+        <div class="brand">
+          <div class="brand-mark">LS</div>
+          <div>
+            <div class="brand-title">Location Service</div>
+            <div class="brand-subtitle">Indonesia administrative data</div>
+          </div>
+          <button class="hamburger" id="closeSidebar" aria-label="Close menu">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        </div>
+
+        <div class="status-panel">
+          <div class="status-row">
+            <span class="status-dot" id="healthDot"></span>
+            <span id="healthText">Checking service</span>
+          </div>
+          <button class="icon-button" id="refreshHealth" title="Refresh health" aria-label="Refresh health">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+          </button>
+        </div>
+
+        <label class="field">
+          <span>API Base URL</span>
+          <input id="apiBaseUrl" type="url" autocomplete="off" spellcheck="false" />
+        </label>
+
+        <div class="nav-tabs" role="tablist" aria-label="Location views">
+          <button class="nav-tab active" data-tab="browse">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg>
+            Browse
+          </button>
+          <button class="nav-tab" data-tab="search">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            Search
+          </button>
+        </div>
+      </aside>
+
+      <main class="main">
+        <section class="toolbar">
+          <div>
+            <button class="hamburger" id="openSidebar" aria-label="Open menu">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+            </button>
+            <h1 id="viewTitle">Browse Locations</h1>
+            <p id="viewSubtitle">Select a province and drill down to village data.</p>
+          </div>
+          <div class="toolbar-actions">
+            <input class="quick-search" id="quickSearch" type="search" placeholder="Quick search…" aria-label="Quick search locations" />
+            <label class="toggle">
+              <input id="shortCodeToggle" type="checkbox" />
+              <span>Short codes</span>
+            </label>
+            <button class="primary-button" id="reloadData">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+              Reload
+            </button>
+            <button class="secondary-button" id="resetData">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>
+              Reset
+            </button>
+          </div>
+        </section>
+
+        <section class="view active" id="browseView">
+          <nav class="breadcrumb" id="breadcrumb" aria-label="Location path"></nav>
+
+          <div class="summary-grid">
+            <div class="metric">
+              <span>Provinces</span>
+              <strong id="provinceCount">0</strong>
+            </div>
+            <div class="metric">
+              <span>Regencies</span>
+              <strong id="regencyCount">0</strong>
+            </div>
+            <div class="metric">
+              <span>Districts</span>
+              <strong id="districtCount">0</strong>
+            </div>
+            <div class="metric">
+              <span>Villages</span>
+              <strong id="villageCount">0</strong>
+            </div>
+          </div>
+
+          <div class="content-grid">
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Provinces <span class="row-count" id="provinceRowCount"></span></h2>
+                <input id="provinceFilter" class="table-filter" type="search" placeholder="Filter…" />
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Code</th><th>Name</th></tr></thead>
+                  <tbody id="provinceRows"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <h2 id="childTableTitle"><span id="childTableTitleText">Child Locations</span> <span class="row-count" id="childRowCount"></span></h2>
+                <input id="childFilter" class="table-filter" type="search" placeholder="Filter…" />
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Code</th><th>Full Code</th><th>Name</th><th>Level</th></tr></thead>
+                  <tbody id="childRows"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="searchView">
+          <div class="search-bar">
+            <input id="searchInput" type="search" placeholder="Search location name or code…" />
+            <label class="field">
+              <span>Limit</span>
+              <input id="searchLimit" type="number" min="1" max="500" value="25" />
+            </label>
+            <button class="primary-button" id="runSearch">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              Search
+            </button>
+          </div>
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Search Results</h2>
+              <span id="searchMeta" class="muted">No query yet</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Code</th><th>Full Code</th><th>Name</th><th>Level</th><th>Parent</th></tr></thead>
+                <tbody id="searchRows"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+      </main>
+
+      <div class="response-drawer" id="responseDrawer">
+        <button class="response-drawer-toggle" id="responseDrawerToggle" aria-expanded="false">
+          <span class="drawer-label">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            Last Response
+          </span>
+          <svg class="drawer-chevron" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+        </button>
+        <div class="response-drawer-body" id="responseDrawerBody">
+          <div class="response-drawer-actions">
+            <button class="secondary-button" id="copyResponse">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              Copy JSON
+            </button>
+          </div>
+          <pre id="responseOutput">{}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <script src="./app.js"></script>
+  </body>
+</html>

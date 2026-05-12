@@ -10,6 +10,7 @@ import (
 	locationhandler "location-service/internal/handlers/http/location"
 	locationrepo "location-service/internal/repositories/location"
 	locationservice "location-service/internal/services/location"
+	"location-service/middlewares"
 	"location-service/pkg/messages"
 	"location-service/pkg/response"
 	"location-service/utils"
@@ -27,7 +28,7 @@ func New(db *sql.DB) http.Handler {
 	mux.HandleFunc("GET /api/locations/districts", handler.Districts)
 	mux.HandleFunc("GET /api/locations/villages", handler.Villages)
 	mux.HandleFunc("GET /api/locations/search", handler.Search)
-	return utils.WithRequestID(mux)
+	return middlewares.CORS(utils.WithRequestID(mux))
 }
 
 func health(db *sql.DB) http.HandlerFunc {

@@ -98,7 +98,7 @@ Docker entrypoint options:
 ```env
 RUN_MIGRATION=false
 RUN_IMPORT=false
-IMPORT_FILE=/data/wilayah.sql
+IMPORT_FILE=/app/data/wilayah.sql
 ```
 
 ## Quick Start
@@ -372,17 +372,26 @@ village: 2001
 
 ## Docker
 
-Build and run API + database:
+Build and run database, backend API, and frontend:
 
 ```bash
 docker compose up --build
 ```
 
-The image runs:
+Local URLs:
+
+```text
+Backend API: http://localhost:8080
+Frontend:    http://localhost:8081
+```
+
+The backend image runs:
 
 ```text
 /app/location-service serve
 ```
+
+The frontend image is built from `frontend/Dockerfile` and serves static files through Nginx. Nginx proxies `/api/*` and `/healthz` to the backend using `API_BASE_URL`.
 
 Optional startup actions:
 

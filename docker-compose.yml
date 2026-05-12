@@ -30,5 +30,17 @@ services:
     ports:
       - "8080:8080"
 
+  frontend:
+    build:
+      context: ./frontend
+    container_name: location-frontend
+    restart: unless-stopped
+    environment:
+      API_BASE_URL: http://api:8080
+    depends_on:
+      - api
+    ports:
+      - "8081:80"
+
 volumes:
   location_pgdata:

@@ -2,6 +2,7 @@ package location
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	interfacelocation "location-service/internal/interfaces/location"
@@ -50,11 +51,12 @@ func (h *Handler) Search(w http.ResponseWriter, r *http.Request) {
 func respond(w http.ResponseWriter, r *http.Request, data any, err error) {
 	logID := utils.LogID(r)
 	if err != nil {
-		status := http.StatusInternalServerError
 		if isClientError(err.Error()) {
-			status = http.StatusBadRequest
+			writeJSON(w, http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, http.StatusText(http.StatusBadRequest), logID, err.Error()))
+			return
 		}
-		writeJSON(w, status, response.ErrorResponse(status, http.StatusText(status), logID, err.Error()))
+		log.Printf("internal error [%s]: %v", logID, err)
+		writeJSON(w, http.StatusInternalServerError, response.InternalServerError(logID))
 		return
 	}
 	writeJSON(w, http.StatusOK, response.Response(http.StatusOK, messages.MsgSuccess, logID, data))
