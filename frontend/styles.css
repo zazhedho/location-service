@@ -50,6 +50,10 @@ body {
 
 button, input, select { font: inherit; }
 button { cursor: pointer; }
+button:focus-visible, input:focus-visible, .nav-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 h1, h2, p { margin: 0; }
 
 /* ── App Shell ── */
@@ -387,11 +391,21 @@ h2 {
 .view.active {
   display: grid;
   gap: 16px;
-  align-content: start;
   flex: 1 1 0;
-  overflow-y: auto;
   min-height: 0;
   padding: 0 32px 24px;
+  overflow: hidden;
+  align-content: start;
+}
+
+#browseView.active {
+  grid-template-rows: auto auto 1fr;
+  align-content: stretch;
+}
+
+#searchView.active {
+  grid-template-rows: auto 1fr;
+  align-content: stretch;
 }
 
 /* Summary / metric cards */
@@ -445,6 +459,8 @@ h2 {
   display: grid;
   grid-template-columns: minmax(280px, 0.75fr) minmax(380px, 1.25fr);
   gap: 16px;
+  min-height: 0;
+  flex: 1 1 0;
 }
 
 .row-count {
@@ -467,6 +483,9 @@ h2 {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .panel-header {
@@ -478,6 +497,7 @@ h2 {
   gap: 12px;
   border-bottom: 1px solid var(--border-soft);
   background: var(--panel-soft);
+  flex: 0 0 auto;
 }
 
 .table-filter {
@@ -490,6 +510,8 @@ h2 {
 /* Table */
 .table-wrap {
   overflow: auto;
+  flex: 1 1 0;
+  min-height: 0;
 }
 
 table {
@@ -538,7 +560,7 @@ tbody tr.selected td:first-child { padding-left: 11px; }
   font-size: 13px;
   background: var(--danger-light);
 }
-.error-icon { margin-right: 6px; }
+.error-icon { margin-right: 6px; vertical-align: -2px; }
 
 .code-cell {
   font-family: 'SF Mono', ui-monospace, monospace;
@@ -774,7 +796,7 @@ td .level-badge {
 
   .main { overflow: hidden; }
   .toolbar { padding: 20px 20px 0; }
-  .view.active { padding: 0 20px 20px; }
+  .view.active, #browseView.active { padding: 0 20px 20px; }
 
   .summary-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -782,6 +804,7 @@ td .level-badge {
 
   .content-grid {
     grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
   }
 
   .quick-search { width: 180px; }
@@ -822,11 +845,11 @@ td .level-badge {
     margin-bottom: 12px;
   }
 
-  .view.active { padding: 0 16px 16px; }
+  .view.active, #browseView.active { padding: 0 16px 16px; }
 
   .toolbar-actions {
     display: grid;
-    grid-template-columns: 1fr auto auto;
+    grid-template-columns: 1fr auto auto auto;
     gap: 8px;
     align-items: center;
   }
@@ -843,7 +866,8 @@ td .level-badge {
   .metric { padding: 12px 14px; }
   .metric strong { font-size: 24px; }
 
-  .content-grid { grid-template-columns: 1fr; }
+  .content-grid { grid-template-columns: 1fr; flex: none; min-height: 0; }
+  .content-grid .panel { max-height: 320px; }
 
   .table-filter { max-width: none; }
 
@@ -853,10 +877,17 @@ td .level-badge {
   }
   .search-bar input:first-child { grid-column: 1 / -1; }
 
-  .panel-header { flex-wrap: wrap; }
+  .panel-header { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
 
   .response-drawer { grid-column: 1; }
   .response-drawer-toggle,
   .response-drawer-actions,
   .response-drawer pre { padding-left: 16px; padding-right: 16px; }
+
+  .toast {
+    right: 12px;
+    left: 12px;
+    bottom: 68px;
+    max-width: none;
+  }
 }
