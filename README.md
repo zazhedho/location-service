@@ -1,32 +1,62 @@
 # Location Service
 
-Lightweight read-only API for Indonesian administrative locations. Data comes from `wilayah.sql`, then gets normalized into provinces, regencies, districts, and villages.
+Read-only Indonesian administrative location service for provinces, regencies, districts, and villages. Data is imported from `wilayah.sql`, normalized into PostgreSQL, cached in Redis, and exposed through a small HTTP API with starter-kit style responses.
 
-## Why This Exists
+[Try the Frontend](https://location-service-do.vercel.app/) · [Health Check](https://location-service-y7si.onrender.com/healthz) · [Postman Collection](postman/location-service.postman_collection.json)
 
-Projects should not depend on external location APIs at runtime. This service becomes the internal source of truth and keeps external/import concerns in one place.
+## Overview
+
+`location-service` exists so other projects do not need to depend on third-party location APIs at runtime. It becomes the internal source of truth for location data and keeps import, normalization, and cache behavior in one small service.
+
+Runtime read flow:
+
+```text
+Client -> HTTP API -> Redis -> PostgreSQL -> Response
+```
+
+If Redis is unavailable, the API logs the error and continues with PostgreSQL only.
+
+## Features
+
+- Province, regency/city, district, and village lookup APIs.
+- Search API across all location levels.
+- PostgreSQL normalized tables for stable source-of-truth data.
+- Redis cache before database reads, with default TTL of six months.
+- One-time automatic seed on first startup when `raw_locations` is empty.
+- Starter-kit response envelope for success and error responses.
+- Full code and short code response modes for compatibility with existing clients.
+- Separate backend and frontend Dockerfiles.
+- Static frontend console for browsing and testing location data.
 
 ## Stack
 
-- Go standard library HTTP server
-- Go 1.26
-- PostgreSQL
-- `github.com/lib/pq`
-
-Starter-kit style package layout, without starter-kit auth/RBAC dependencies. Keep this service small and boring.
+| Area | Technology |
+|------|------------|
+| Backend | Go 1.26, standard library HTTP server |
+| Database | PostgreSQL |
+| Cache | Redis |
+| Driver | `github.com/lib/pq` |
+| Redis Client | `github.com/redis/go-redis/v9` |
+| Frontend | Static HTML, CSS, JavaScript |
+| Runtime | Docker, Docker Compose |
 
 ## Project Structure
 
 ```text
 .
 ├── cmd/importer/                 # Bulk import command logic
-├── infrastructure/database/      # PostgreSQL connection and migration runner
+├── data/                         # Bundled wilayah.sql seed file
+├── frontend/                     # Static frontend app and frontend Dockerfile
+├── infrastructure/database/      # PostgreSQL and Redis connections
+├── internal/bootstrap/           # Startup seed orchestration
+├── internal/cache/location/      # Redis cache helpers and keys
 ├── internal/domain/location/     # Location entity and import stats
 ├── internal/handlers/http/       # HTTP handlers
 ├── internal/interfaces/location/ # Service and repository contracts
 ├── internal/repositories/        # SQL queries
 ├── internal/router/              # Route registration
 ├── internal/services/            # Validation and use-case logic
+├── middlewares/                  # HTTP middleware
 ├── migrations/                   # SQL schema
 ├── pkg/messages/                 # Shared response messages
 ├── pkg/response/                 # Starter-kit style response envelope
@@ -37,7 +67,7 @@ Starter-kit style package layout, without starter-kit auth/RBAC dependencies. Ke
 
 ## Data Model
 
-Source file format:
+Source code format:
 
 ```text
 11                 province
@@ -47,14 +77,6 @@ Source file format:
 ```
 
 Normalized tables:
-
-- `raw_locations`
-- `provinces`
-- `regencies`
-- `districts`
-- `villages`
-
-Imported data count from the current `wilayah.sql`:
 
 | Table | Rows |
 |-------|------|
@@ -66,7 +88,7 @@ Imported data count from the current `wilayah.sql`:
 
 ## Configuration
 
-Create `.env` from the example:
+Create a local environment file:
 
 ```bash
 cp .env.example .env
@@ -78,10 +100,15 @@ Main variables:
 APP_ENV=development
 PORT=8080
 PATH_MIGRATE=migrations/000001_init.sql
+CORS_ALLOWED_ORIGINS=*
 COMMAND=serve
+
 DATABASE_URL=postgres://location:location@localhost:5438/location?sslmode=disable
+
 REDIS_HOST=localhost
 REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_DB=0
 LOCATION_CACHE_TTL=4320h
 ```
 
@@ -96,21 +123,19 @@ DB_NAME=location
 DB_SSLMODE=disable
 ```
 
-Docker entrypoint options:
+Seed and import variables:
 
 ```env
+AUTO_SEED=true
+AUTO_SEED_REQUIRED=false
+SEED_FILE=data/wilayah.sql
+
 RUN_MIGRATION=false
 RUN_IMPORT=false
 IMPORT_FILE=/app/data/wilayah.sql
 ```
 
-Runtime read flow:
-
-```text
-Redis -> PostgreSQL -> response
-```
-
-If Redis is unavailable, the service logs the error and continues with PostgreSQL only. `LOCATION_CACHE_TTL=4320h` keeps cached location responses for six months.
+`AUTO_SEED=true` runs during `serve`. It checks `raw_locations`; if the table is empty, it imports `SEED_FILE` in one transaction using PostgreSQL `COPY`. Startup skips seeding when data already exists.
 
 ## Quick Start
 
@@ -126,22 +151,35 @@ Run migration:
 go run . migrate
 ```
 
-Import data from workspace root:
+Import data:
 
 ```bash
-go run . import -file ../wilayah.sql
+go run . import -file data/wilayah.sql
 ```
 
-Start API:
+Start the API:
 
 ```bash
 go run . serve
 ```
 
-API runs at:
+API:
 
 ```text
 http://localhost:8080
+```
+
+Frontend, without Docker:
+
+```bash
+cd frontend
+python3 -m http.server 5173
+```
+
+Then open:
+
+```text
+http://localhost:5173
 ```
 
 ## Commands
@@ -153,16 +191,16 @@ go run . migrate
 Creates or updates database schema.
 
 ```bash
-go run . import -file ../wilayah.sql
+go run . import -file data/wilayah.sql
 ```
 
-Imports `wilayah.sql` into `raw_locations`, then bulk loads normalized tables. Import truncates existing location tables by default.
+Imports `wilayah.sql` into `raw_locations`, then bulk-loads normalized tables. Import truncates existing location tables by default.
 
 ```bash
 go run . serve
 ```
 
-Starts read-only HTTP API.
+Runs migration, runs first-start seed if needed, connects to Redis when available, and starts the read-only HTTP API.
 
 ## API Response Format
 
@@ -193,45 +231,12 @@ Error:
 }
 ```
 
-Location item:
+## API Endpoints
 
-```json
-{
-  "code": "11.01",
-  "full_code": "11.01",
-  "name": "Kabupaten Aceh Selatan",
-  "level": "regency",
-  "parent_code": "11"
-}
-```
-
-Field notes:
-
-- `code`: follows `code_format`; full code by default, short code when `code_format=short`.
-- `full_code`: always contains complete administrative code.
-- `level`: one of `province`, `regency`, `district`, `village`.
-- `parent_code`: parent full code. Empty for provinces and search results.
-
-## Endpoints
-
-### Healthcheck
+### Health
 
 ```text
 GET /healthz
-```
-
-Response:
-
-```json
-{
-  "log_id": "019ab0f0-c8ec-7d25-9f62-2f23d92fcda3",
-  "code": 200,
-  "status": true,
-  "message": "Success",
-  "data": {
-    "status": "ok"
-  }
-}
 ```
 
 ### Provinces
@@ -240,22 +245,14 @@ Response:
 GET /api/locations/provinces
 ```
 
-Example response:
+Example item:
 
 ```json
 {
-  "log_id": "019ab0f0-c8ec-7d25-9f62-2f23d92fcda3",
-  "code": 200,
-  "status": true,
-  "message": "Success",
-  "data": [
-    {
-      "code": "11",
-      "full_code": "11",
-      "name": "Aceh",
-      "level": "province"
-    }
-  ]
+  "code": "11",
+  "full_code": "11",
+  "name": "Aceh",
+  "level": "province"
 }
 ```
 
@@ -266,7 +263,7 @@ GET /api/locations/regencies?province_code=11
 GET /api/locations/regencies?province_code=11&code_format=short
 ```
 
-Full code response item:
+Full code item:
 
 ```json
 {
@@ -278,7 +275,7 @@ Full code response item:
 }
 ```
 
-Short code response item:
+Short code item:
 
 ```json
 {
@@ -297,7 +294,7 @@ GET /api/locations/districts?regency_code=11.01
 GET /api/locations/districts?province_code=11&regency_code=01&code_format=short
 ```
 
-Example short-code response item:
+Example short code item:
 
 ```json
 {
@@ -316,7 +313,7 @@ GET /api/locations/villages?district_code=11.01.01
 GET /api/locations/villages?province_code=11&regency_code=01&district_code=01&code_format=short
 ```
 
-Example short-code response item:
+Example short code item:
 
 ```json
 {
@@ -341,25 +338,6 @@ Rules:
 - `limit` defaults to `50`.
 - `limit` must be between `1` and `500`.
 
-Example response:
-
-```json
-{
-  "log_id": "019ab0f0-c8ec-7d25-9f62-2f23d92fcda3",
-  "code": 200,
-  "status": true,
-  "message": "Success",
-  "data": [
-    {
-      "code": "11",
-      "full_code": "11",
-      "name": "Aceh",
-      "level": "province"
-    }
-  ]
-}
-```
-
 ## Code Format
 
 Default API responses use full administrative codes:
@@ -371,7 +349,7 @@ district: 11.01.01
 village: 11.01.01.2001
 ```
 
-For existing clients that still expect short child codes, pass `code_format=short`:
+For clients that need short child codes, pass `code_format=short`:
 
 ```text
 regency: 01
@@ -381,9 +359,29 @@ village: 2001
 
 `full_code` is always included, so clients can migrate from short code to full code gradually.
 
+## Redis Cache
+
+Cache keys are scoped by endpoint and request parameters:
+
+```text
+location:provinces
+location:regencies:{province_code}:{code_format}
+location:districts:{regency_code}:{code_format}
+location:villages:{district_code}:{code_format}
+location:search:{query_hash}:{limit}
+```
+
+Default TTL:
+
+```env
+LOCATION_CACHE_TTL=4320h
+```
+
+`4320h` equals 180 days, or approximately six months.
+
 ## Docker
 
-Build and run database, backend API, and frontend:
+Build and run database, Redis, backend API, and frontend:
 
 ```bash
 docker compose up --build
@@ -396,33 +394,44 @@ Backend API: http://localhost:8080
 Frontend:    http://localhost:8081
 ```
 
-The backend image runs:
+Images are separated:
+
+| Image | Dockerfile | Purpose |
+|-------|------------|---------|
+| Backend | `Dockerfile` | Go API, migrations, seed file |
+| Frontend | `frontend/Dockerfile` | Nginx static frontend |
+
+The frontend Nginx proxy forwards `/api/*` and `/healthz` to the backend using `API_BASE_URL`.
+
+## Frontend
+
+Live demo:
 
 ```text
-/app/location-service serve
+https://location-service-do.vercel.app/
 ```
 
-The frontend image is built from `frontend/Dockerfile` and serves static files through Nginx. Nginx proxies `/api/*` and `/healthz` to the backend using `API_BASE_URL`.
+The frontend is intentionally static. It can be hosted on Vercel, Nginx, object storage, or opened through a local static server. It supports:
 
-Optional startup actions:
-
-```env
-RUN_MIGRATION=true
-RUN_IMPORT=true
-IMPORT_FILE=/app/data/wilayah.sql
-AUTO_SEED=true
-AUTO_SEED_REQUIRED=false
-SEED_FILE=data/wilayah.sql
-```
-
-On `serve`, `AUTO_SEED=true` checks `raw_locations`. If the table is empty, the service imports `SEED_FILE` in one transaction using PostgreSQL `COPY`; if data already exists, startup skips seeding. The Docker image includes `data/wilayah.sql`, so first deploy can seed without mounting an extra file.
-
-`RUN_IMPORT=true` remains available for forced manual import from `IMPORT_FILE`.
+- service health check
+- province, regency, district, and village browsing
+- short code toggle
+- search
+- API response inspector
+- configurable API base URL
 
 ## Postman
 
-Import this collection:
+Import:
 
 ```text
 postman/location-service.postman_collection.json
 ```
+
+## Verification
+
+```bash
+go test ./...
+go build ./...
+```
+
