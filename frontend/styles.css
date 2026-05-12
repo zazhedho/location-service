@@ -315,12 +315,12 @@ h1, h2, p { margin: 0; }
 /* Toolbar */
 .toolbar {
   flex: 0 0 auto;
-  padding: 24px 32px 0;
+  padding: 20px 32px 0;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 6px;
 }
 
 h1 {
@@ -390,18 +390,24 @@ h2 {
 .view { display: none; }
 .view.active {
   display: grid;
-  gap: 16px;
+  gap: 10px;
   flex: 1 1 0;
   min-height: 0;
   min-width: 0;
-  padding: 0 32px 24px;
+  padding: 0 32px 16px;
   overflow: hidden;
   align-content: start;
 }
 
 #browseView.active {
-  grid-template-rows: auto auto 1fr;
-  align-content: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#browseView.active .content-grid {
+  flex: 1 1 0;
+  min-height: 0;
 }
 
 #searchView.active {
@@ -413,7 +419,7 @@ h2 {
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .metric {
@@ -421,7 +427,7 @@ h2 {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
-  padding: 16px 18px;
+  padding: 10px 14px;
   position: relative;
   overflow: hidden;
   transition: box-shadow 0.2s, transform 0.2s;
@@ -440,7 +446,7 @@ h2 {
 
 .metric span {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -448,10 +454,10 @@ h2 {
 
 .metric strong {
   display: block;
-  font-size: 30px;
+  font-size: 22px;
   font-weight: 700;
-  letter-spacing: -1px;
-  margin-top: 6px;
+  letter-spacing: -0.5px;
+  margin-top: 2px;
   color: var(--text);
 }
 
@@ -766,9 +772,9 @@ td .level-badge {
   gap: 2px;
   font-size: 13px;
   color: var(--muted);
-  min-height: 28px;
   padding: 0 2px;
 }
+.breadcrumb:empty { display: none; }
 .breadcrumb-item {
   display: flex;
   align-items: center;
