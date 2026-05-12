@@ -38,6 +38,7 @@ const els = {
   searchRows: document.getElementById('searchRows'),
   searchMeta: document.getElementById('searchMeta'),
   responseOutput: document.getElementById('responseOutput'),
+  responseMethod: document.getElementById('responseMethod'),
   copyResponse: document.getElementById('copyResponse'),
   responseDrawer: document.getElementById('responseDrawer'),
   responseDrawerToggle: document.getElementById('responseDrawerToggle'),
@@ -56,7 +57,9 @@ function apiBaseUrl() {
 
 function setLastResponse(requestLine, payload) {
   state.lastResponse = payload
-  els.responseOutput.textContent = `// ${requestLine}\n\n${JSON.stringify(payload, null, 2)}`
+  els.responseMethod.textContent = requestLine
+  els.responseOutput.textContent = JSON.stringify(payload, null, 2)
+  els.responseDrawer.classList.add('has-data')
 }
 
 function showToast(msg) {
