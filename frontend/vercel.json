@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://location-service-y7si.onrender.com/api/$1" },
+    { "source": "/healthz", "destination": "https://location-service-y7si.onrender.com/healthz" }
+  ]
+}

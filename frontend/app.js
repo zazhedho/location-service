@@ -1,7 +1,4 @@
-const DEFAULT_API_BASE_URL = window.location.protocol.startsWith('http')
-  ? window.location.origin
-  : 'https://location-service-y7si.onrender.com'
-  // : 'https://localhost:8080'
+const DEFAULT_API_BASE_URL = window.location.origin
 
 const state = {
   apiBaseUrl: localStorage.getItem('location-service-api-base-url') || DEFAULT_API_BASE_URL,
@@ -19,6 +16,7 @@ const state = {
 
 const els = {
   apiBaseUrl: document.getElementById('apiBaseUrl'),
+  resetApiUrl: document.getElementById('resetApiUrl'),
   healthDot: document.getElementById('healthDot'),
   healthText: document.getElementById('healthText'),
   refreshHealth: document.getElementById('refreshHealth'),
@@ -444,6 +442,14 @@ function closeSidebar() {
 
 function bindEvents() {
   els.apiBaseUrl.value = state.apiBaseUrl
+  els.apiBaseUrl.placeholder = DEFAULT_API_BASE_URL
+  els.resetApiUrl.addEventListener('click', () => {
+    state.apiBaseUrl = DEFAULT_API_BASE_URL
+    els.apiBaseUrl.value = DEFAULT_API_BASE_URL
+    localStorage.removeItem('location-service-api-base-url')
+    checkHealth()
+    reloadAll()
+  })
   els.openSidebar.addEventListener('click', openSidebar)
   els.closeSidebar.addEventListener('click', closeSidebar)
   els.sidebarOverlay.addEventListener('click', closeSidebar)
