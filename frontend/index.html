@@ -106,27 +106,11 @@
           <div class="content-grid">
             <section class="panel">
               <div class="panel-header">
-                <h2>Provinces <span class="row-count" id="provinceRowCount"></span></h2>
-                <input id="provinceFilter" class="table-filter" type="search" placeholder="Filter…" />
+                <h2>Locations <span class="row-count" id="treeRowCount"></span></h2>
+                <input id="treeFilter" class="table-filter" type="search" placeholder="Filter…" />
               </div>
-              <div class="table-wrap">
-                <table>
-                  <thead><tr><th>Code</th><th>Name</th></tr></thead>
-                  <tbody id="provinceRows"></tbody>
-                </table>
-              </div>
-            </section>
-
-            <section class="panel">
-              <div class="panel-header">
-                <h2 id="childTableTitle"><span id="childTableTitleText">Child Locations</span> <span class="row-count" id="childRowCount"></span></h2>
-                <input id="childFilter" class="table-filter" type="search" placeholder="Filter…" />
-              </div>
-              <div class="table-wrap">
-                <table>
-                  <thead><tr><th>Code</th><th>Full Code</th><th>Name</th><th>Level</th></tr></thead>
-                  <tbody id="childRows"></tbody>
-                </table>
+              <div class="tree-wrap" id="treeWrap">
+                <div class="tree" id="treeRoot" role="tree" aria-label="Location hierarchy"></div>
               </div>
             </section>
           </div>

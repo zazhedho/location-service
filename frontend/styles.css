@@ -454,13 +454,129 @@ h2 {
   color: var(--text);
 }
 
-/* Content grid */
+/* Content — tree view */
 .content-grid {
-  display: grid;
-  grid-template-columns: minmax(280px, 0.75fr) minmax(380px, 1.25fr);
-  gap: 16px;
   min-height: 0;
   flex: 1 1 0;
+  display: flex;
+}
+
+.content-grid .panel {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.tree-wrap {
+  flex: 1 1 0;
+  overflow: auto;
+  min-height: 0;
+  padding: 8px 0;
+}
+
+.tree-node {
+  user-select: none;
+}
+
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  margin: 1px 8px;
+  transition: background 0.1s;
+  font-size: 13px;
+}
+.tree-row:hover { background: var(--accent-light); }
+
+.tree-chevron {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  color: var(--muted);
+  transition: transform 0.2s;
+  border-radius: 4px;
+}
+.tree-chevron:hover { background: var(--border-soft); }
+.tree-node.expanded > .tree-row .tree-chevron { transform: rotate(90deg); }
+.tree-node.leaf > .tree-row .tree-chevron { visibility: hidden; }
+
+.tree-code {
+  font-family: 'SF Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent-dark);
+  background: var(--accent-light);
+  padding: 1px 6px;
+  border-radius: 4px;
+  cursor: copy;
+  flex: 0 0 auto;
+}
+.tree-code:hover { text-decoration: underline dotted; }
+
+.tree-name {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.tree-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 20px;
+  text-transform: capitalize;
+  flex: 0 0 auto;
+}
+.tree-badge-province { background: #eef2ff; color: #4338ca; }
+.tree-badge-regency  { background: #f5f3ff; color: #6d28d9; }
+.tree-badge-district { background: #ecfeff; color: #0e7490; }
+.tree-badge-village  { background: #f0fdf4; color: #15803d; }
+
+.tree-children {
+  padding-left: 20px;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.3s ease, opacity 0.2s ease;
+}
+.tree-node.expanded > .tree-children {
+  max-height: 100000px;
+  opacity: 1;
+}
+
+.tree-loading {
+  padding: 8px 14px 8px 38px;
+  color: var(--muted);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tree-loading::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.tree-empty {
+  padding: 24px 14px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .row-count {
@@ -802,11 +918,6 @@ td .level-badge {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .content-grid {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
-  }
-
   .quick-search { width: 180px; }
   .quick-search:focus { width: 220px; }
 }
@@ -865,9 +976,6 @@ td .level-badge {
   .summary-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .metric { padding: 12px 14px; }
   .metric strong { font-size: 24px; }
-
-  .content-grid { grid-template-columns: 1fr; flex: none; min-height: 0; }
-  .content-grid .panel { max-height: 320px; }
 
   .table-filter { max-width: none; }
 
