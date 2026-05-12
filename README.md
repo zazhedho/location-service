@@ -1,12 +1,34 @@
 # Location Service
 
-Read-only Indonesian administrative location service for provinces, regencies, districts, and villages. Data is imported from `wilayah.sql`, normalized into PostgreSQL, cached in Redis, and exposed through a small HTTP API with starter-kit style responses.
+<p align="center">
+  <strong>API wilayah Indonesia untuk provinsi, kabupaten/kota, kecamatan, dan desa/kelurahan.</strong>
+</p>
+
+<p align="center">
+  <a href="https://location-service-do.vercel.app/"><img alt="Live Demo" src="https://img.shields.io/badge/live-demo-2563eb?style=for-the-badge"></a>
+  <a href="https://location-service-y7si.onrender.com/healthz"><img alt="API Health" src="https://img.shields.io/badge/api-health-16a34a?style=for-the-badge"></a>
+  <img alt="Go" src="https://img.shields.io/badge/go-1.26-00ADD8?style=for-the-badge&logo=go&logoColor=white">
+  <img alt="PostgreSQL" src="https://img.shields.io/badge/postgresql-ready-4169E1?style=for-the-badge&logo=postgresql&logoColor=white">
+  <img alt="Redis" src="https://img.shields.io/badge/redis-cache-DC382D?style=for-the-badge&logo=redis&logoColor=white">
+</p>
+
+Location Service menyediakan API wilayah Indonesia siap pakai untuk mengambil data provinsi, kabupaten/kota, kecamatan, dan desa/kelurahan. API ini cocok untuk form alamat, dropdown lokasi berjenjang, validasi kode wilayah, pencarian nama daerah, dan kebutuhan master data wilayah Indonesia.
+
+Dengan HTTP API sederhana, aplikasi bisa mengambil data wilayah Indonesia dari sumber data yang stabil, mencari lokasi berdasarkan nama, serta memilih format kode lengkap atau kode pendek sesuai kebutuhan integrasi.
 
 [Try the Frontend](https://location-service-do.vercel.app/) · [Health Check](https://location-service-y7si.onrender.com/healthz) · [Postman Collection](postman/location-service.postman_collection.json)
 
 ## Overview
 
-`location-service` exists so other projects do not need to depend on third-party location APIs at runtime. It becomes the internal source of truth for location data and keeps import, normalization, and cache behavior in one small service.
+`location-service` is a read-only Indonesian administrative area API. It loads source data into PostgreSQL tables, caches responses in Redis, and exposes endpoints for location lookup and search.
+
+Common use cases:
+
+- province and city dropdowns
+- cascading address forms
+- district and village lookup
+- location search by name
+- internal master data for Indonesian administrative regions
 
 Runtime read flow:
 
@@ -16,6 +38,42 @@ Client -> HTTP API -> Redis -> PostgreSQL -> Response
 
 If Redis is unavailable, the API logs the error and continues with PostgreSQL only.
 
+## Interface Preview
+
+The frontend is a lightweight console for trying the API directly from the browser.
+
+| Browse Locations | Search Locations |
+|------------------|------------------|
+| Pick a province, drill down to regencies, districts, and villages, then inspect the last API response. | Search by location name or code, set result limits, and compare returned levels in one table. |
+
+```text
+┌──────────────────────┬──────────────────────────────────────────────┐
+│ Location Service     │ Browse Locations                             │
+│ Indonesia data       │ Select a province and drill down to villages │
+│                      │                                              │
+│ ● Service healthy    │ ┌──────────┐ ┌──────────┐ ┌──────────┐      │
+│                      │ │ Provinces│ │ Regencies│ │ Districts│ ...  │
+│ Browse               │ └──────────┘ └──────────┘ └──────────┘      │
+│ Search               │                                              │
+│                      │ ┌────────────────┐ ┌──────────────────────┐ │
+│                      │ │ Provinces      │ │ Child Locations      │ │
+│                      │ │ 11 Aceh        │ │ 11.01 Simeulue      │ │
+│                      │ │ 12 Sumatera... │ │ 11.02 Aceh Singkil  │ │
+│                      │ └────────────────┘ └──────────────────────┘ │
+└──────────────────────┴──────────────────────────────────────────────┘
+```
+
+### UI Highlights
+
+| Area | Purpose |
+|------|---------|
+| Sidebar navigation | Switch between browse mode and search mode. |
+| Health indicator | Shows backend availability before users test endpoints. |
+| Cascading browser | Moves from province to regency, district, and village data. |
+| Short code toggle | Switches between full administrative codes and short codes. |
+| Response drawer | Displays the latest JSON response with copy support. |
+| Responsive layout | Sidebar collapses on small screens for mobile testing. |
+
 ## Features
 
 - Province, regency/city, district, and village lookup APIs.
@@ -23,7 +81,7 @@ If Redis is unavailable, the API logs the error and continues with PostgreSQL on
 - PostgreSQL normalized tables for stable source-of-truth data.
 - Redis cache before database reads, with default TTL of six months.
 - One-time automatic seed on first startup when `raw_locations` is empty.
-- Starter-kit response envelope for success and error responses.
+- Consistent JSON response envelope for success and error responses.
 - Full code and short code response modes for compatibility with existing clients.
 - Separate backend and frontend Dockerfiles.
 - Static frontend console for browsing and testing location data.
@@ -45,7 +103,7 @@ If Redis is unavailable, the API logs the error and continues with PostgreSQL on
 ```text
 .
 ├── cmd/importer/                 # Bulk import command logic
-├── data/                         # Bundled wilayah.sql seed file
+├── data/                         # Bundled seed data
 ├── frontend/                     # Static frontend app and frontend Dockerfile
 ├── infrastructure/database/      # PostgreSQL and Redis connections
 ├── internal/bootstrap/           # Startup seed orchestration
@@ -59,7 +117,7 @@ If Redis is unavailable, the API logs the error and continues with PostgreSQL on
 ├── middlewares/                  # HTTP middleware
 ├── migrations/                   # SQL schema
 ├── pkg/messages/                 # Shared response messages
-├── pkg/response/                 # Starter-kit style response envelope
+├── pkg/response/                 # Shared response envelope
 ├── postman/                      # Postman collection
 ├── utils/                        # Env helpers
 └── main.go                       # Command entrypoint
@@ -123,19 +181,9 @@ DB_NAME=location
 DB_SSLMODE=disable
 ```
 
-Seed and import variables:
+Seed and import variables are available in `.env.example`.
 
-```env
-AUTO_SEED=true
-AUTO_SEED_REQUIRED=false
-SEED_FILE=data/wilayah.sql
-
-RUN_MIGRATION=false
-RUN_IMPORT=false
-IMPORT_FILE=/app/data/wilayah.sql
-```
-
-`AUTO_SEED=true` runs during `serve`. It checks `raw_locations`; if the table is empty, it imports `SEED_FILE` in one transaction using PostgreSQL `COPY`. Startup skips seeding when data already exists.
+`AUTO_SEED=true` runs during `serve`. It checks `raw_locations`; if the table is empty, it imports the configured seed file in one transaction using PostgreSQL `COPY`. Startup skips seeding when data already exists.
 
 ## Quick Start
 
@@ -149,12 +197,6 @@ Run migration:
 
 ```bash
 go run . migrate
-```
-
-Import data:
-
-```bash
-go run . import -file data/wilayah.sql
 ```
 
 Start the API:
@@ -191,10 +233,10 @@ go run . migrate
 Creates or updates database schema.
 
 ```bash
-go run . import -file data/wilayah.sql
+go run . import -file <path-to-location-data.sql>
 ```
 
-Imports `wilayah.sql` into `raw_locations`, then bulk-loads normalized tables. Import truncates existing location tables by default.
+Imports a location data SQL file into `raw_locations`, then bulk-loads normalized tables. Import truncates existing location tables by default.
 
 ```bash
 go run . serve
@@ -434,4 +476,3 @@ postman/location-service.postman_collection.json
 go test ./...
 go build ./...
 ```
-
