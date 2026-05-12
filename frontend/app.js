@@ -1,7 +1,7 @@
 const DEFAULT_API_BASE_URL = window.location.protocol.startsWith('http')
   ? window.location.origin
-  // : 'https://location-service-y7si.onrender.com'
-  : 'https://localhost:8080'
+  : 'https://location-service-y7si.onrender.com'
+  // : 'https://localhost:8080'
 
 const state = {
   apiBaseUrl: localStorage.getItem('location-service-api-base-url') || DEFAULT_API_BASE_URL,
