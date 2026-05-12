@@ -17,16 +17,28 @@ services:
       timeout: 3s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    container_name: location-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
   api:
     build: .
     container_name: location-service
     restart: unless-stopped
     environment:
       DATABASE_URL: postgres://location:location@postgres:5432/location?sslmode=disable
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      LOCATION_CACHE_TTL: 4320h
       PORT: 8080
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
     ports:
       - "8080:8080"
 

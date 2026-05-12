@@ -67,9 +67,17 @@ func serve() error {
 		return fmt.Errorf("seed data: %w", err)
 	}
 
+	redisClient, err := database.OpenRedis()
+	if err != nil {
+		log.Printf("redis disabled: %v", err)
+	}
+	if redisClient != nil {
+		defer redisClient.Close()
+	}
+
 	addr := ":" + strings.TrimPrefix(*port, ":")
 	log.Printf("location-service listening on %s", addr)
-	return http.ListenAndServe(addr, router.New(db))
+	return http.ListenAndServe(addr, router.New(db, redisClient))
 }
 
 func importData() error {

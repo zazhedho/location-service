@@ -80,6 +80,9 @@ PORT=8080
 PATH_MIGRATE=migrations/000001_init.sql
 COMMAND=serve
 DATABASE_URL=postgres://location:location@localhost:5438/location?sslmode=disable
+REDIS_HOST=localhost
+REDIS_PORT=6379
+LOCATION_CACHE_TTL=4320h
 ```
 
 If `DATABASE_URL` is empty, the service builds a PostgreSQL DSN from:
@@ -101,12 +104,20 @@ RUN_IMPORT=false
 IMPORT_FILE=/app/data/wilayah.sql
 ```
 
+Runtime read flow:
+
+```text
+Redis -> PostgreSQL -> response
+```
+
+If Redis is unavailable, the service logs the error and continues with PostgreSQL only. `LOCATION_CACHE_TTL=4320h` keeps cached location responses for six months.
+
 ## Quick Start
 
-Start PostgreSQL:
+Start PostgreSQL and Redis:
 
 ```bash
-docker compose up -d postgres
+docker compose up -d postgres redis
 ```
 
 Run migration:

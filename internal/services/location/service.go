@@ -6,20 +6,37 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/redis/go-redis/v9"
+
+	locationcache "location-service/internal/cache/location"
 	domainlocation "location-service/internal/domain/location"
 	interfacelocation "location-service/internal/interfaces/location"
 )
 
 type service struct {
-	repo interfacelocation.Repository
+	repo  interfacelocation.Repository
+	redis *redis.Client
 }
 
-func NewService(repo interfacelocation.Repository) interfacelocation.Service {
-	return &service{repo: repo}
+func NewService(repo interfacelocation.Repository, redisClients ...*redis.Client) interfacelocation.Service {
+	var redisClient *redis.Client
+	if len(redisClients) > 0 {
+		redisClient = redisClients[0]
+	}
+	return &service{repo: repo, redis: redisClient}
 }
 
 func (s *service) ListProvinces(ctx context.Context) ([]domainlocation.Item, error) {
-	return s.repo.ListProvinces(ctx)
+	key := locationcache.ProvinceKey()
+	if items, ok := locationcache.Get(ctx, s.redis, key); ok {
+		return items, nil
+	}
+	items, err := s.repo.ListProvinces(ctx)
+	if err != nil {
+		return nil, err
+	}
+	locationcache.Set(ctx, s.redis, key, items)
+	return items, nil
 }
 
 func (s *service) ListRegencies(ctx context.Context, provinceCode, codeFormat string) ([]domainlocation.Item, error) {
@@ -27,7 +44,17 @@ func (s *service) ListRegencies(ctx context.Context, provinceCode, codeFormat st
 	if provinceCode == "" {
 		return nil, errors.New("province_code is required")
 	}
-	return s.repo.ListRegencies(ctx, provinceCode, normalizeCodeFormat(codeFormat))
+	codeFormat = normalizeCodeFormat(codeFormat)
+	key := locationcache.RegencyKey(provinceCode, codeFormat)
+	if items, ok := locationcache.Get(ctx, s.redis, key); ok {
+		return items, nil
+	}
+	items, err := s.repo.ListRegencies(ctx, provinceCode, codeFormat)
+	if err != nil {
+		return nil, err
+	}
+	locationcache.Set(ctx, s.redis, key, items)
+	return items, nil
 }
 
 func (s *service) ListDistricts(ctx context.Context, provinceCode, regencyCode, codeFormat string) ([]domainlocation.Item, error) {
@@ -35,7 +62,17 @@ func (s *service) ListDistricts(ctx context.Context, provinceCode, regencyCode, 
 	if err != nil {
 		return nil, err
 	}
-	return s.repo.ListDistricts(ctx, resolvedRegencyCode, normalizeCodeFormat(codeFormat))
+	codeFormat = normalizeCodeFormat(codeFormat)
+	key := locationcache.DistrictKey(resolvedRegencyCode, codeFormat)
+	if items, ok := locationcache.Get(ctx, s.redis, key); ok {
+		return items, nil
+	}
+	items, err := s.repo.ListDistricts(ctx, resolvedRegencyCode, codeFormat)
+	if err != nil {
+		return nil, err
+	}
+	locationcache.Set(ctx, s.redis, key, items)
+	return items, nil
 }
 
 func (s *service) ListVillages(ctx context.Context, provinceCode, regencyCode, districtCode, codeFormat string) ([]domainlocation.Item, error) {
@@ -43,14 +80,15 @@ func (s *service) ListVillages(ctx context.Context, provinceCode, regencyCode, d
 	if districtCode == "" {
 		return nil, errors.New("district_code is required")
 	}
+	codeFormat = normalizeCodeFormat(codeFormat)
 	if strings.Count(districtCode, ".") == 2 {
-		return s.repo.ListVillages(ctx, districtCode, normalizeCodeFormat(codeFormat))
+		return s.listVillagesByDistrict(ctx, districtCode, codeFormat)
 	}
 	resolvedRegencyCode, err := resolveChildCode(provinceCode, regencyCode, "regency_code")
 	if err != nil {
 		return nil, err
 	}
-	return s.repo.ListVillages(ctx, resolvedRegencyCode+"."+districtCode, normalizeCodeFormat(codeFormat))
+	return s.listVillagesByDistrict(ctx, resolvedRegencyCode+"."+districtCode, codeFormat)
 }
 
 func (s *service) Search(ctx context.Context, query string, limit string) ([]domainlocation.Item, error) {
@@ -66,7 +104,29 @@ func (s *service) Search(ctx context.Context, query string, limit string) ([]dom
 		}
 		parsedLimit = value
 	}
-	return s.repo.Search(ctx, query, parsedLimit)
+	key := locationcache.SearchKey(query, parsedLimit)
+	if items, ok := locationcache.Get(ctx, s.redis, key); ok {
+		return items, nil
+	}
+	items, err := s.repo.Search(ctx, query, parsedLimit)
+	if err != nil {
+		return nil, err
+	}
+	locationcache.Set(ctx, s.redis, key, items)
+	return items, nil
+}
+
+func (s *service) listVillagesByDistrict(ctx context.Context, districtCode, codeFormat string) ([]domainlocation.Item, error) {
+	key := locationcache.VillageKey(districtCode, codeFormat)
+	if items, ok := locationcache.Get(ctx, s.redis, key); ok {
+		return items, nil
+	}
+	items, err := s.repo.ListVillages(ctx, districtCode, codeFormat)
+	if err != nil {
+		return nil, err
+	}
+	locationcache.Set(ctx, s.redis, key, items)
+	return items, nil
 }
 
 func normalizeCodeFormat(value string) string {

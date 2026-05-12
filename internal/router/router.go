@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/redis/go-redis/v9"
+
 	locationhandler "location-service/internal/handlers/http/location"
 	locationrepo "location-service/internal/repositories/location"
 	locationservice "location-service/internal/services/location"
@@ -16,9 +18,9 @@ import (
 	"location-service/utils"
 )
 
-func New(db *sql.DB) http.Handler {
+func New(db *sql.DB, redisClient *redis.Client) http.Handler {
 	repo := locationrepo.NewRepository(db)
-	service := locationservice.NewService(repo)
+	service := locationservice.NewService(repo, redisClient)
 	handler := locationhandler.NewHandler(service)
 
 	mux := http.NewServeMux()
