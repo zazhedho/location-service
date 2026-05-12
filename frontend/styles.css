@@ -490,7 +490,6 @@ h2 {
 /* Table */
 .table-wrap {
   overflow: auto;
-  max-height: 500px;
 }
 
 table {
@@ -573,7 +572,44 @@ td .level-badge {
   align-items: end;
 }
 
+.search-bar .field > span {
+  color: var(--muted);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+}
+
 .muted { color: var(--muted); font-size: 12px; }
+
+.action-cell {
+  width: 1px;
+  white-space: nowrap;
+  padding: 6px 12px 6px 4px;
+}
+
+.browse-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s;
+}
+
+.search-row:hover .browse-btn { opacity: 1; }
+.browse-btn:hover { background: var(--accent-light); border-color: var(--accent); }
+
+@media (max-width: 768px) {
+  .action-cell { display: none; }
+  /* on mobile, full row click is the only way — cursor pointer already set */
+}
 
 /* Response pre — only used inside drawer */
 
@@ -583,9 +619,9 @@ td .level-badge {
   align-items: center;
   flex-wrap: wrap;
   gap: 2px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
-  min-height: 24px;
+  min-height: 28px;
   padding: 0 2px;
 }
 .breadcrumb-item {
@@ -596,10 +632,10 @@ td .level-badge {
 .breadcrumb-item button {
   background: none;
   border: none;
-  padding: 2px 6px;
+  padding: 3px 8px;
   border-radius: var(--radius-sm);
   color: var(--accent);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s;
@@ -610,12 +646,13 @@ td .level-badge {
   font-weight: 700;
   cursor: default;
   pointer-events: none;
+  background: var(--border-soft);
 }
 .breadcrumb-sep {
   color: var(--muted);
   display: flex;
   align-items: center;
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 /* Loading skeleton */
@@ -747,8 +784,6 @@ td .level-badge {
     grid-template-columns: 1fr;
   }
 
-  .table-wrap { max-height: 380px; }
-
   .quick-search { width: 180px; }
   .quick-search:focus { width: 220px; }
 }
@@ -809,8 +844,6 @@ td .level-badge {
   .metric strong { font-size: 24px; }
 
   .content-grid { grid-template-columns: 1fr; }
-
-  .table-wrap { max-height: 300px; }
 
   .table-filter { max-width: none; }
 

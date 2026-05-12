@@ -145,14 +145,14 @@ function setTableLoading(tbody, columns) {
   }
 }
 
-function renderRows(tbody, items, columns, selectedCode, onClick) {
+function renderRows(tbody, items, columns, selectedCode, onClick, emptyText = 'No data') {
   tbody.innerHTML = ''
   if (!items.length) {
     const row = document.createElement('tr')
     row.className = 'empty-row'
     const cell = document.createElement('td')
     cell.colSpan = columns.length
-    cell.textContent = 'No data'
+    cell.textContent = emptyText
     row.appendChild(cell)
     tbody.appendChild(row)
     return
@@ -204,7 +204,6 @@ function renderBreadcrumb() {
 
   els.breadcrumb.innerHTML = ''
   if (!crumbs.length) {
-    els.breadcrumb.innerHTML = ''
     return
   }
   crumbs.forEach((crumb, i) => {
@@ -262,6 +261,15 @@ function renderBrowse() {
   els.childTableTitleText.textContent = childTitle
   const childSelectedCode = state.villages.length ? '' : state.districts.length ? state.selectedDistrict : state.selectedRegency
   const filteredChild = filterRows(childRows, els.childFilter.value)
+
+  const childEmptyText = !state.selectedProvince
+    ? '← Select a province to continue'
+    : !state.selectedRegency && !state.regencies.length
+    ? '← Select a regency to see districts'
+    : !state.selectedDistrict && !state.districts.length
+    ? '← Select a district to see villages'
+    : 'No data'
+
   renderRows(els.childRows, filteredChild, ['code', 'full_code', 'name', 'level'], childSelectedCode, (item) => {
     if (item.level === 'regency') {
       state.selectedRegency = item.full_code || item.code
@@ -271,7 +279,7 @@ function renderBrowse() {
       state.selectedDistrict = item.full_code || item.code
       onDistrictChange()
     }
-  })
+  }, childEmptyText)
   els.childRowCount.textContent = filteredChild.length || ''
 }
 
@@ -392,24 +400,97 @@ function switchTab(tab) {
   }
 }
 
+function renderSearchRows(tbody, items) {
+  tbody.innerHTML = ''
+  if (!items.length) {
+    const row = document.createElement('tr')
+    row.className = 'empty-row'
+    const cell = document.createElement('td')
+    cell.colSpan = 6
+    cell.textContent = 'No results'
+    row.appendChild(cell)
+    tbody.appendChild(row)
+    return
+  }
+  items.forEach((item) => {
+    const row = document.createElement('tr')
+    row.className = 'search-row'
+    ;['code', 'full_code', 'name', 'level', 'parent_code'].forEach((col, idx) => {
+      const cell = document.createElement('td')
+      const value = item[col] || '-'
+      if (idx === 0 && value !== '-') {
+        cell.className = 'code-cell'
+        cell.title = 'Click to copy'
+        cell.addEventListener('click', (e) => {
+          e.stopPropagation()
+          navigator.clipboard.writeText(value).then(() => showToast(`Copied: ${value}`))
+        })
+        cell.textContent = value
+      } else if (col === 'level' && value !== '-') {
+        const badge = document.createElement('span')
+        badge.className = `level-badge level-${value}`
+        badge.textContent = value
+        cell.appendChild(badge)
+      } else {
+        cell.textContent = value
+      }
+      row.appendChild(cell)
+    })
+    // action cell
+    const action = document.createElement('td')
+    action.className = 'action-cell'
+    action.innerHTML = `<button class="browse-btn" title="Browse this location">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      Browse
+    </button>`
+    action.querySelector('.browse-btn').addEventListener('click', (e) => {
+      e.stopPropagation()
+      navigateToBrowse(item)
+    })
+    row.appendChild(action)
+    row.addEventListener('click', () => navigateToBrowse(item))
+    tbody.appendChild(row)
+  })
+}
+
+async function navigateToBrowse(item) {
+  switchTab('browse')
+  const fc = item.full_code || item.code
+  const parts = fc.split('.')
+  state.selectedProvince = parts[0] || ''
+  state.selectedRegency = parts.length >= 2 ? parts.slice(0, 2).join('.') : ''
+  state.selectedDistrict = parts.length >= 3 ? parts.slice(0, 3).join('.') : ''
+  syncToUrl()
+  try {
+    if (!state.provinces.length) await loadProvinces()
+    if (state.selectedProvince) await loadRegencies()
+    if (state.selectedRegency) await loadDistricts()
+    if (state.selectedDistrict) await loadVillages()
+    renderBrowse()
+  } catch (error) {
+    showToast(error.message)
+  }
+}
+
 async function runSearch() {
   const q = els.searchInput.value.trim()
   if (!q) {
     showToast('Search query is required')
     return
   }
-  setTableLoading(els.searchRows, ['code', 'full_code', 'name', 'level', 'parent_code'])
+  setTableLoading(els.searchRows, ['code', 'full_code', 'name', 'level', 'parent_code', ''])
   els.searchMeta.textContent = 'Searching…'
   try {
     const rows = await request('/api/locations/search', {
       q,
       limit: els.searchLimit.value || 25,
     })
-    renderRows(els.searchRows, rows, ['code', 'full_code', 'name', 'level', 'parent_code'])
-    els.searchMeta.textContent = `${rows.length} result${rows.length === 1 ? '' : 's'}`
+    renderSearchRows(els.searchRows, rows)
+    const isMobile = window.innerWidth <= 768
+    els.searchMeta.textContent = `${rows.length} result${rows.length === 1 ? '' : 's'}${isMobile ? ' — tap a row to browse' : ''}`
   } catch (error) {
     els.searchMeta.textContent = 'Search failed'
-    setTableError(els.searchRows, ['code', 'full_code', 'name', 'level', 'parent_code'], error.message)
+    setTableError(els.searchRows, ['code', 'full_code', 'name', 'level', 'parent_code', ''], error.message)
     showToast(error.message)
   }
 }
