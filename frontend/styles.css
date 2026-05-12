@@ -503,6 +503,11 @@ h2 {
 }
 .tree-chevron:hover { background: var(--border-soft); }
 .tree-node.expanded > .tree-row .tree-chevron { transform: rotate(90deg); }
+.tree-node.expanded > .tree-row {
+  background: var(--accent-light);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
 .tree-node.leaf > .tree-row .tree-chevron { visibility: hidden; }
 
 .tree-code {
@@ -964,6 +969,11 @@ td .level-badge {
     gap: 8px;
     align-items: center;
   }
+
+  .toolbar-actions .primary-button,
+  .toolbar-actions .secondary-button { padding: 0; width: 36px; min-height: 36px; font-size: 0; }
+  .toolbar-actions .primary-button svg,
+  .toolbar-actions .secondary-button svg { font-size: initial; }
 
   .quick-search {
     width: 100%;

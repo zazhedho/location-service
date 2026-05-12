@@ -447,6 +447,11 @@ function bindEvents() {
     els.shortCodeToggle.checked = false
     els.treeFilter.value = ''
     els.quickSearch.value = ''
+    els.provinceCount.textContent = '0'
+    els.regencyCount.textContent = '0'
+    els.districtCount.textContent = '0'
+    els.villageCount.textContent = '0'
+    history.replaceState(null, '', location.pathname)
     loadTree()
     showToast('Reset')
   })
