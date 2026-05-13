@@ -70,7 +70,7 @@
         <label class="field" id="apiBaseUrlField" style="display:none">
           <span>API Base URL</span>
           <div class="field-with-action">
-            <input id="apiBaseUrl" type="url" autocomplete="off" spellcheck="false" />
+            <input id="apiBaseUrl" type="url" autocomplete="off" spellcheck="false" aria-label="API Base URL" />
             <button class="icon-button" id="resetApiUrl" title="Reset to default" aria-label="Reset to default URL">
               <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
             </button>
@@ -78,11 +78,11 @@
         </label>
 
         <div class="nav-tabs" role="tablist" aria-label="Location views">
-          <button class="nav-tab active" data-tab="browse">
+          <button class="nav-tab active" data-tab="browse" role="tab" aria-selected="true" aria-controls="browseView" id="browseTab">
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg>
             Browse
           </button>
-          <button class="nav-tab" data-tab="search">
+          <button class="nav-tab" data-tab="search" role="tab" aria-selected="false" aria-controls="searchView" id="searchTab">
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
             Search
           </button>
@@ -103,7 +103,7 @@
           <div class="toolbar-actions">
             <input class="quick-search" id="quickSearch" type="search" placeholder="Quick search…" aria-label="Quick search locations" />
             <label class="toggle">
-              <input id="shortCodeToggle" type="checkbox" />
+              <input id="shortCodeToggle" type="checkbox" aria-label="Use short codes" />
               <span>Short codes</span>
             </label>
             <button class="primary-button" id="reloadData">
@@ -117,7 +117,7 @@
           </div>
         </section>
 
-        <section class="view active" id="browseView">
+        <section class="view active" id="browseView" role="tabpanel" aria-labelledby="browseTab">
           <nav class="breadcrumb" id="breadcrumb" aria-label="Location path"></nav>
 
           <div class="summary-heading">
@@ -157,6 +157,7 @@
             <section class="panel">
               <div class="panel-header">
                 <h2>Locations <span class="row-count" id="treeRowCount"></span></h2>
+                <label class="sr-only" for="treeFilter">Filter locations</label>
                 <input id="treeFilter" class="table-filter" type="search" placeholder="Filter…" />
               </div>
               <div class="tree-wrap" id="treeWrap">
@@ -166,12 +167,13 @@
           </div>
         </section>
 
-        <section class="view" id="searchView">
+        <section class="view" id="searchView" role="tabpanel" aria-labelledby="searchTab" hidden>
           <div class="search-bar">
+            <label class="sr-only" for="searchInput">Search location name</label>
             <input id="searchInput" type="search" placeholder="Search by location name…" />
             <label class="field">
               <span>Limit</span>
-              <input id="searchLimit" type="number" min="1" max="500" value="25" />
+              <input id="searchLimit" type="number" min="1" max="500" value="25" aria-label="Search result limit" />
             </label>
             <button class="primary-button" id="runSearch">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -185,7 +187,7 @@
             </div>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Code</th><th>Full Code</th><th>Name</th><th>Level</th><th>Parent</th><th></th></tr></thead>
+                <thead><tr><th>Code</th><th>Full Code</th><th>Name</th><th>Level</th><th>Parent</th><th>Action</th></tr></thead>
                 <tbody id="searchRows"></tbody>
               </table>
             </div>
@@ -204,7 +206,7 @@
         </button>
         <div class="response-drawer-body" id="responseDrawerBody">
           <div class="response-drawer-bar">
-            <a class="response-drawer-method" id="responseMethod" target="_blank" rel="noopener"></a>
+            <a class="response-drawer-method" id="responseMethod" target="_blank" rel="noopener" aria-label="Open last response URL">No response yet</a>
             <button class="secondary-button" id="copyEndpoint">
               <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
               URL

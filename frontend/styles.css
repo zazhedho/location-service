@@ -6,7 +6,7 @@
   --panel-soft: #f8f8fb;
   --text: #0f0f1a;
   --text-secondary: #4a4a6a;
-  --muted: #8888aa;
+  --muted: #6b6b86;
   --border: #e4e4f0;
   --border-soft: #ededf8;
   --accent: #4f46e5;
@@ -22,7 +22,7 @@
   --sidebar-surface: rgba(255,255,255,0.06);
   --sidebar-border: rgba(255,255,255,0.09);
   --sidebar-text: #e0e0f0;
-  --sidebar-muted: #7878a8;
+  --sidebar-muted: #a5a5d6;
   --shadow-sm: 0 1px 3px rgba(15,15,26,0.06), 0 1px 2px rgba(15,15,26,0.04);
   --shadow: 0 4px 16px rgba(15,15,26,0.07), 0 1px 4px rgba(15,15,26,0.04);
   --shadow-lg: 0 10px 40px rgba(15,15,26,0.12), 0 2px 8px rgba(15,15,26,0.06);
@@ -55,6 +55,18 @@ button:focus-visible, input:focus-visible, .nav-tab:focus-visible {
   outline-offset: 2px;
 }
 h1, h2, p { margin: 0; }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 /* ── App Shell ── */
 .app-shell {

@@ -67,6 +67,7 @@ function setLastResponse(requestLine, payload) {
   const url = requestLine.replace(/^GET\s+/, '')
   els.responseMethod.textContent = requestLine
   els.responseMethod.href = url
+  els.responseMethod.setAttribute('aria-label', `Open ${requestLine}`)
   els.responseOutput.textContent = JSON.stringify(payload, null, 2)
   els.responseDrawer.classList.add('has-data')
   if (!els.responseDrawer.classList.contains('open')) {
@@ -97,6 +98,10 @@ async function request(path, params = {}, silent = false) {
 
 function codeFormatParams() {
   return state.shortCodes ? { code_format: 'short' } : {}
+}
+
+function isActivationKey(event) {
+  return event.key === 'Enter' || event.key === ' '
 }
 
 function formatCount(value) {
@@ -283,7 +288,7 @@ function createTreeNode(item) {
   const row = document.createElement('div')
   row.className = 'tree-row'
   row.setAttribute('role', 'treeitem')
-  row.setAttribute('aria-expanded', 'false')
+  row.tabIndex = 0
 
   const chevron = document.createElement('span')
   chevron.className = 'tree-chevron'
@@ -293,9 +298,18 @@ function createTreeNode(item) {
   code.className = 'tree-code'
   code.textContent = item.code
   code.title = 'Click to copy'
-  code.addEventListener('click', (e) => {
+  code.setAttribute('role', 'button')
+  code.setAttribute('aria-label', `Copy location code ${item.full_code || item.code}`)
+  code.tabIndex = 0
+  const copyCode = (e) => {
     e.stopPropagation()
     navigator.clipboard.writeText(item.full_code || item.code).then(() => showToast(`Copied: ${item.full_code || item.code}`))
+  }
+  code.addEventListener('click', copyCode)
+  code.addEventListener('keydown', (e) => {
+    if (!isActivationKey(e)) return
+    e.preventDefault()
+    copyCode(e)
   })
 
   const name = document.createElement('span')
@@ -313,12 +327,18 @@ function createTreeNode(item) {
   node.appendChild(row)
 
   if (!isLeaf) {
+    row.setAttribute('aria-expanded', 'false')
     const children = document.createElement('div')
     children.className = 'tree-children'
     children.setAttribute('role', 'group')
     node.appendChild(children)
 
     row.addEventListener('click', () => toggleNode(node, item))
+    row.addEventListener('keydown', (e) => {
+      if (!isActivationKey(e)) return
+      e.preventDefault()
+      toggleNode(node, item)
+    })
   }
 
   return node
@@ -542,8 +562,16 @@ async function runSearch() {
 
 function switchTab(tab) {
   state.activeTab = tab
-  els.tabs.forEach(b => b.classList.toggle('active', b.dataset.tab === tab))
-  Object.entries(els.views).forEach(([k, v]) => v.classList.toggle('active', k === tab))
+  els.tabs.forEach((button) => {
+    const active = button.dataset.tab === tab
+    button.classList.toggle('active', active)
+    button.setAttribute('aria-selected', String(active))
+  })
+  Object.entries(els.views).forEach(([k, v]) => {
+    const active = k === tab
+    v.classList.toggle('active', active)
+    v.hidden = !active
+  })
   if (tab === 'browse') {
     els.viewTitle.textContent = 'Browse Locations'
     els.viewSubtitle.textContent = 'Explore provinces, regencies, districts, and villages.'
