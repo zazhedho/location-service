@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://location-service-do.vercel.app/sitemap.xml
