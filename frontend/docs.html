@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Location Service Docs - API Wilayah Indonesia</title>
+    <meta name="description" content="Documentation for Location Service, an API for Indonesian provinces, regencies, districts, and villages. Learn endpoints, response format, and implementation examples." />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#4f46e5" />
+    <link rel="canonical" href="https://location-service-do.vercel.app/docs" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://location-service-do.vercel.app/docs" />
+    <meta property="og:title" content="Location Service Docs - API Wilayah Indonesia" />
+    <meta property="og:description" content="Use the Indonesian location API for address forms, cascading dropdowns, and location search." />
+    <meta property="og:image" content="https://location-service-do.vercel.app/og-image.svg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Location Service Docs - API Wilayah Indonesia" />
+    <meta name="twitter:description" content="Endpoint guide and implementation examples for Indonesian location data." />
+    <meta name="twitter:image" content="https://location-service-do.vercel.app/og-image.svg" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "TechArticle",
+        "headline": "Location Service API Documentation",
+        "description": "Endpoint guide and implementation examples for Indonesian administrative location data.",
+        "url": "https://location-service-do.vercel.app/docs",
+        "author": {
+          "@type": "Organization",
+          "name": "Location Service"
+        }
+      }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/docs.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="Back to Location Service app">
+        <span class="brand-mark">LS</span>
+        <span>
+          <strong>Location Service</strong>
+          <small>API Wilayah Indonesia</small>
+        </span>
+      </a>
+      <nav class="top-nav" aria-label="Main navigation">
+        <a href="/">Try API</a>
+        <a href="#quick-start">Quick Start</a>
+        <a href="#examples">Examples</a>
+        <a href="#endpoints">Endpoints</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Documentation</p>
+          <h1>Use Indonesian location data in your app.</h1>
+          <p class="lead">Location Service provides a simple HTTP API for provinces, regencies/cities, districts, and villages. Use it for address forms, cascading dropdowns, search boxes, validation, and internal master data.</p>
+          <div class="hero-pills" aria-label="Highlights">
+            <span>Read-only API</span>
+            <span>Consistent response</span>
+            <span>Cached data</span>
+          </div>
+          <div class="hero-actions">
+            <a class="primary-link" href="#quick-start">Start integrating</a>
+            <a class="secondary-link" href="/">Open API console</a>
+          </div>
+        </div>
+        <aside class="base-url-card" aria-label="Base URL">
+          <span>Base URL</span>
+          <code>https://location-service-do.vercel.app</code>
+          <p>Frontend requests are proxied to the backend API, so this public URL can be used directly from browser examples.</p>
+        </aside>
+      </section>
+
+      <section class="stats-strip" aria-label="Available data summary">
+        <article>
+          <span>Provinces</span>
+          <strong>38</strong>
+        </article>
+        <article>
+          <span>Regencies</span>
+          <strong>514</strong>
+        </article>
+        <article>
+          <span>Districts</span>
+          <strong>7,285</strong>
+        </article>
+        <article>
+          <span>Villages</span>
+          <strong>83,762</strong>
+        </article>
+      </section>
+
+      <div class="docs-layout">
+        <aside class="toc" aria-label="Documentation sections">
+          <span>On this page</span>
+          <a href="#quick-start">Quick Start</a>
+          <a href="#workflow">Address Form Flow</a>
+          <a href="#use-cases">Use Cases</a>
+          <a href="#examples">Examples</a>
+          <a href="#endpoints">Endpoints</a>
+          <a href="#codes">Code Format</a>
+          <a href="#checklist">Checklist</a>
+        </aside>
+
+        <div class="docs-content">
+      <section class="content-grid" id="quick-start">
+        <article class="doc-section">
+          <h2>Quick Start</h2>
+          <p>Fetch provinces first, then request child locations using the selected parent code.</p>
+          <pre><code>curl "https://location-service-do.vercel.app/api/locations/provinces"</code></pre>
+          <pre><code>curl "https://location-service-do.vercel.app/api/locations/regencies?province_code=11"</code></pre>
+        </article>
+
+        <article class="doc-section">
+          <h2>Response Format</h2>
+          <p>All successful API responses use the same envelope.</p>
+          <pre><code>{
+  "log_id": "019ab0f0-c8ec-7d25-9f62-2f23d92fcda3",
+  "code": 200,
+  "status": true,
+  "message": "Success",
+  "data": []
+}</code></pre>
+        </article>
+      </section>
+
+      <section class="doc-section" id="workflow">
+        <h2>Recommended Address Form Flow</h2>
+        <p class="section-lead">Use parent codes to load the next level only when users need it. This keeps your UI fast and avoids loading village data too early.</p>
+        <ol class="steps">
+          <li>Load provinces on page load.</li>
+          <li>When a province is selected, call regencies with <code>province_code</code>.</li>
+          <li>When a regency is selected, call districts with <code>regency_code</code>.</li>
+          <li>When a district is selected, call villages with <code>district_code</code>.</li>
+          <li>Save the <code>full_code</code> and <code>name</code> in your app when you need stable references.</li>
+        </ol>
+      </section>
+
+      <section class="doc-section" id="use-cases">
+        <h2>Common Use Cases</h2>
+        <div class="use-case-grid">
+          <article>
+            <strong>Address forms</strong>
+            <p>Build province, city, district, and village dropdowns that follow user selection.</p>
+          </article>
+          <article>
+            <strong>Location search</strong>
+            <p>Let users search by location name when they do not know the administrative code.</p>
+          </article>
+          <article>
+            <strong>Data validation</strong>
+            <p>Validate submitted location codes before saving address data in your application.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="doc-section" id="examples">
+        <h2>Implementation Examples</h2>
+
+        <h3>JavaScript</h3>
+        <pre><code>const BASE_URL = 'https://location-service-do.vercel.app'
+
+async function getProvinces() {
+  const res = await fetch(`${BASE_URL}/api/locations/provinces`)
+  const json = await res.json()
+
+  if (!json.status) {
+    throw new Error(json.message)
+  }
+
+  return json.data
+}</code></pre>
+
+        <h3>React Cascading Dropdown</h3>
+        <pre><code>import { useEffect, useState } from 'react'
+
+const BASE_URL = 'https://location-service-do.vercel.app'
+
+async function getJSON(path) {
+  const res = await fetch(`${BASE_URL}${path}`)
+  const json = await res.json()
+  if (!json.status) throw new Error(json.message)
+  return json.data
+}
+
+export function AddressSelect() {
+  const [provinces, setProvinces] = useState([])
+  const [regencies, setRegencies] = useState([])
+  const [provinceCode, setProvinceCode] = useState('')
+
+  useEffect(() => {
+    getJSON('/api/locations/provinces').then(setProvinces)
+  }, [])
+
+  useEffect(() => {
+    if (!provinceCode) {
+      setRegencies([])
+      return
+    }
+
+    getJSON(`/api/locations/regencies?province_code=${provinceCode}`)
+      .then(setRegencies)
+  }, [provinceCode])
+
+  return (
+    &lt;&gt;
+      &lt;select onChange={(event) =&gt; setProvinceCode(event.target.value)}&gt;
+        &lt;option value=""&gt;Select province&lt;/option&gt;
+        {provinces.map((item) =&gt; (
+          &lt;option key={item.full_code} value={item.full_code}&gt;
+            {item.name}
+          &lt;/option&gt;
+        ))}
+      &lt;/select&gt;
+
+      &lt;select disabled={!provinceCode}&gt;
+        &lt;option value=""&gt;Select regency/city&lt;/option&gt;
+        {regencies.map((item) =&gt; (
+          &lt;option key={item.full_code} value={item.full_code}&gt;
+            {item.name}
+          &lt;/option&gt;
+        ))}
+      &lt;/select&gt;
+    &lt;/&gt;
+  )
+}</code></pre>
+
+        <h3>Go</h3>
+        <pre><code>package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+)
+
+type Response struct {
+	Status bool `json:"status"`
+	Data   []struct {
+		Code     string `json:"code"`
+		FullCode string `json:"full_code"`
+		Name     string `json:"name"`
+		Level    string `json:"level"`
+	} `json:"data"`
+}
+
+func main() {
+	res, err := http.Get("https://location-service-do.vercel.app/api/locations/provinces")
+	if err != nil {
+		panic(err)
+	}
+	defer res.Body.Close()
+
+	var payload Response
+	if err := json.NewDecoder(res.Body).Decode(&payload); err != nil {
+		panic(err)
+	}
+
+	for _, item := range payload.Data {
+		fmt.Println(item.FullCode, item.Name)
+	}
+}</code></pre>
+      </section>
+
+      <section class="doc-section" id="endpoints">
+        <h2>Endpoints</h2>
+        <div class="endpoint-list">
+          <article>
+            <span>GET</span>
+            <code>/healthz</code>
+            <p>Check API availability.</p>
+          </article>
+          <article>
+            <span>GET</span>
+            <code>/api/locations/stats</code>
+            <p>Get total location counts. Supports <code>province_code</code>, <code>regency_code</code>, and <code>district_code</code> for scoped counts.</p>
+          </article>
+          <article>
+            <span>GET</span>
+            <code>/api/locations/provinces</code>
+            <p>Get all provinces.</p>
+          </article>
+          <article>
+            <span>GET</span>
+            <code>/api/locations/regencies?province_code=11</code>
+            <p>Get regencies/cities by province.</p>
+          </article>
+          <article>
+            <span>GET</span>
+            <code>/api/locations/districts?regency_code=11.01</code>
+            <p>Get districts by regency/city.</p>
+          </article>
+          <article>
+            <span>GET</span>
+            <code>/api/locations/villages?district_code=11.01.01</code>
+            <p>Get villages by district.</p>
+          </article>
+          <article>
+            <span>GET</span>
+            <code>/api/locations/search?q=aceh&amp;limit=25</code>
+            <p>Search locations by name.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="doc-section" id="codes">
+        <h2>Code Format</h2>
+        <p>By default, child endpoints return full administrative codes. Add <code>code_format=short</code> when your UI only needs child-level codes.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Level</th>
+                <th>Full code</th>
+                <th>Short code</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Province</td>
+                <td><code>11</code></td>
+                <td><code>11</code></td>
+              </tr>
+              <tr>
+                <td>Regency/city</td>
+                <td><code>11.01</code></td>
+                <td><code>01</code></td>
+              </tr>
+              <tr>
+                <td>District</td>
+                <td><code>11.01.01</code></td>
+                <td><code>01</code></td>
+              </tr>
+              <tr>
+                <td>Village</td>
+                <td><code>11.01.01.2001</code></td>
+                <td><code>2001</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="doc-section" id="checklist">
+        <h2>Implementation Checklist</h2>
+        <ul class="checklist">
+          <li>Use <code>full_code</code> as the saved location identifier.</li>
+          <li>Cache API responses in your frontend state to avoid duplicate requests.</li>
+          <li>Reset child dropdowns when a parent selection changes.</li>
+          <li>Show loading and empty states for each dropdown.</li>
+          <li>Use <code>code_format=short</code> only when your UI needs short child codes.</li>
+        </ul>
+      </section>
+        </div>
+      </div>
+    </main>
+    <script src="/docs.js"></script>
+  </body>
+</html>

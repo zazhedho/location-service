@@ -276,6 +276,34 @@ h1, h2, p { margin: 0; }
   box-shadow: inset 3px 0 0 #818cf8;
 }
 
+.sidebar-links {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--sidebar-border);
+}
+
+.nav-link {
+  min-height: 38px;
+  border-radius: var(--radius-sm);
+  color: var(--sidebar-muted);
+  text-decoration: none;
+  padding: 0 12px;
+  font-weight: 500;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.15s, color 0.15s;
+}
+.nav-link:hover,
+.nav-link:focus-visible {
+  background: var(--sidebar-surface);
+  color: var(--sidebar-text);
+}
+
 /* Buttons */
 .icon-button,
 .primary-button,

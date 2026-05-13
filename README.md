@@ -16,7 +16,7 @@ Location Service menyediakan API wilayah Indonesia siap pakai untuk mengambil da
 
 Dengan HTTP API sederhana, aplikasi bisa mengambil data wilayah Indonesia dari sumber data yang stabil, mencari lokasi berdasarkan nama, serta memilih format kode lengkap atau kode pendek sesuai kebutuhan integrasi.
 
-[Try the Frontend](https://location-service-do.vercel.app/) · [Health Check](https://location-service-y7si.onrender.com/healthz) · [Postman Collection](postman/location-service.postman_collection.json)
+[Try the Frontend](https://location-service-do.vercel.app/) · [Documentation](https://location-service-do.vercel.app/docs) · [Health Check](https://location-service-y7si.onrender.com/healthz) · [Postman Collection](postman/location-service.postman_collection.json)
 
 ## Overview
 
