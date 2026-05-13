@@ -57,12 +57,14 @@
 
       <main class="main">
         <section class="toolbar">
-          <div>
+          <div class="toolbar-title">
             <button class="hamburger" id="openSidebar" aria-label="Open menu">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
             </button>
-            <h1 id="viewTitle">Browse Locations</h1>
-            <p id="viewSubtitle">Select a province and drill down to village data.</p>
+            <div>
+              <h1 id="viewTitle">Browse Locations</h1>
+              <p id="viewSubtitle">Select a province and drill down to village data.</p>
+            </div>
           </div>
           <div class="toolbar-actions">
             <input class="quick-search" id="quickSearch" type="search" placeholder="Quick search…" aria-label="Quick search locations" />
@@ -153,11 +155,15 @@
           <svg class="drawer-chevron" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
         </button>
         <div class="response-drawer-body" id="responseDrawerBody">
-          <div class="response-drawer-actions">
-            <span class="response-drawer-method" id="responseMethod"></span>
+          <div class="response-drawer-bar">
+            <a class="response-drawer-method" id="responseMethod" target="_blank" rel="noopener"></a>
+            <button class="secondary-button" id="copyEndpoint">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              URL
+            </button>
             <button class="secondary-button" id="copyResponse">
               <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-              Copy
+              JSON
             </button>
           </div>
           <pre id="responseOutput">{}</pre>

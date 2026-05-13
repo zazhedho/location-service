@@ -39,6 +39,7 @@ const els = {
   searchMeta: document.getElementById('searchMeta'),
   responseOutput: document.getElementById('responseOutput'),
   responseMethod: document.getElementById('responseMethod'),
+  copyEndpoint: document.getElementById('copyEndpoint'),
   copyResponse: document.getElementById('copyResponse'),
   responseDrawer: document.getElementById('responseDrawer'),
   responseDrawerToggle: document.getElementById('responseDrawerToggle'),
@@ -57,7 +58,9 @@ function apiBaseUrl() {
 
 function setLastResponse(requestLine, payload) {
   state.lastResponse = payload
+  const url = requestLine.replace(/^GET\s+/, '')
   els.responseMethod.textContent = requestLine
+  els.responseMethod.href = url
   els.responseOutput.textContent = JSON.stringify(payload, null, 2)
   els.responseDrawer.classList.add('has-data')
 }
@@ -474,6 +477,10 @@ function bindEvents() {
   els.runSearch.addEventListener('click', runSearch)
   els.searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') runSearch() })
   els.searchLimit.addEventListener('keydown', (e) => { if (e.key === 'Enter') runSearch() })
+  els.copyEndpoint.addEventListener('click', async () => {
+    await navigator.clipboard.writeText(els.responseMethod.href)
+    showToast('URL copied')
+  })
   els.copyResponse.addEventListener('click', async () => {
     await navigator.clipboard.writeText(JSON.stringify(state.lastResponse, null, 2))
     showToast('Response copied')

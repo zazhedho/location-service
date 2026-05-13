@@ -187,6 +187,13 @@ h1, h2, p { margin: 0; }
   color: var(--sidebar-muted);
 }
 
+.toggle span {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13px;
+  color: inherit;
+}
+
 .sidebar .field > span { color: var(--sidebar-muted); }
 
 .field input,
@@ -339,6 +346,12 @@ h2 {
   color: var(--muted);
   margin-top: 4px;
   font-size: 13px;
+}
+
+.toolbar-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .toolbar-actions {
@@ -833,7 +846,7 @@ td .level-badge {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 32px;
+  padding: 8px 32px;
   background: none;
   border: none;
   font-size: 13px;
@@ -877,11 +890,11 @@ td .level-badge {
   border-top-color: var(--border-soft);
 }
 
-.response-drawer-actions {
+.response-drawer-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 8px 32px;
+  gap: 8px;
+  padding: 6px 32px;
   border-bottom: 1px solid var(--border-soft);
   background: var(--panel-soft);
 }
@@ -889,14 +902,28 @@ td .level-badge {
 .response-drawer-method {
   font-family: 'SF Mono', ui-monospace, monospace;
   font-size: 11px;
-  color: var(--accent);
-  font-weight: 600;
+  color: var(--text-secondary);
+  font-weight: 500;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.response-drawer-method:hover { color: var(--accent); text-decoration: underline; }
+
+.response-drawer-bar .secondary-button {
+  min-height: 26px;
+  font-size: 11px;
+  padding: 0 8px;
+  flex: 0 0 auto;
 }
 
 .response-drawer pre {
   margin: 0;
   max-height: 340px;
-  padding: 14px 32px;
+  padding: 12px 32px;
   white-space: pre-wrap;
   word-wrap: break-word;
   overflow: auto;
@@ -1057,9 +1084,9 @@ td .level-badge {
     z-index: 50;
   }
   .response-drawer.open .response-drawer-body { max-height: 50vh; }
-  .response-drawer-toggle { padding: 10px 16px; }
-  .response-drawer-actions { padding: 8px 16px; }
-  .response-drawer pre { padding: 12px 16px; max-height: 40vh; }
+  .response-drawer-toggle { padding: 8px 16px; }
+  .response-drawer-bar { padding: 6px 16px; }
+  .response-drawer pre { padding: 10px 16px; max-height: 35vh; font-size: 11px; }
 
   .toast {
     right: 12px;
