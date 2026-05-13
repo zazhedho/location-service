@@ -69,6 +69,9 @@ function setLastResponse(requestLine, payload) {
   els.responseMethod.href = url
   els.responseOutput.textContent = JSON.stringify(payload, null, 2)
   els.responseDrawer.classList.add('has-data')
+  if (!els.responseDrawer.classList.contains('open')) {
+    els.responseDrawer.classList.add('has-unread-response')
+  }
 }
 
 function showToast(msg) {
@@ -584,6 +587,7 @@ function bindEvents() {
   els.responseDrawerToggle.addEventListener('click', () => {
     const open = els.responseDrawer.classList.toggle('open')
     els.responseDrawerToggle.setAttribute('aria-expanded', String(open))
+    if (open) els.responseDrawer.classList.remove('has-unread-response')
   })
   els.reloadData.addEventListener('click', refreshData)
   els.resetData.addEventListener('click', () => {

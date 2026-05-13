@@ -984,14 +984,50 @@ td .level-badge {
 }
 
 .drawer-dot {
-  width: 6px;
-  height: 6px;
+  position: relative;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--accent);
   opacity: 0;
   transition: opacity 0.3s;
 }
 .response-drawer.has-data .drawer-dot { opacity: 1; }
+.response-drawer.has-unread-response .drawer-dot {
+  background: var(--success);
+  animation: unread-pulse 1s ease-in-out infinite;
+}
+.response-drawer.has-unread-response .drawer-dot::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 1px solid var(--success);
+  animation: unread-ring 1s ease-out infinite;
+}
+.response-drawer.open .drawer-dot {
+  animation: none;
+}
+.response-drawer.open .drawer-dot::after {
+  display: none;
+}
+
+@keyframes unread-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.72); opacity: 0.55; }
+}
+
+@keyframes unread-ring {
+  0% { transform: scale(0.55); opacity: 0.65; }
+  100% { transform: scale(1.45); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .response-drawer.has-unread-response .drawer-dot,
+  .response-drawer.has-unread-response .drawer-dot::after {
+    animation: none;
+  }
+}
 
 .response-drawer-body {
   max-height: 0;
