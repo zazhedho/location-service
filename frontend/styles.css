@@ -1011,9 +1011,29 @@ td .level-badge {
 
   h1 { font-size: 20px; }
 
-  .summary-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; overflow: hidden; }
-  .metric { padding: 12px 14px; }
-  .metric strong { font-size: 24px; }
+  .summary-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .metric {
+    padding: 8px 0;
+    text-align: center;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    border-right: 1px solid var(--border-soft);
+  }
+  .metric:last-child { border-right: none; }
+  .metric::before { display: none; }
+  .metric:hover { transform: none; box-shadow: none; }
+  .metric span { font-size: 10px; }
+  .metric span { font-size: 0; }
+  .metric span::after { content: attr(data-short); font-size: 10px; }
+  .metric strong { font-size: 18px; margin-top: 1px; }
 
   .tree-children { padding-left: 14px; }
   .tree-row { margin: 1px 4px; padding: 7px 8px; }
