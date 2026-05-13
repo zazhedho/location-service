@@ -192,6 +192,17 @@ h3 {
   max-width: 720px;
 }
 
+.note {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border: 1px solid #c7d2fe;
+  border-radius: 9px;
+  background: var(--accent-light);
+  color: var(--accent-dark);
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .steps {
   display: grid;
   gap: 12px;
@@ -242,12 +253,45 @@ h3 {
   margin-top: 2px;
 }
 
-.example {
-  margin-top: 22px;
+.language-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 12px;
 }
 
-.example:first-of-type {
-  margin-top: 12px;
+.language-tab {
+  min-height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel-soft);
+  color: var(--secondary);
+  padding: 0 13px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.language-tab:hover,
+.language-tab:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent-dark);
+  outline: none;
+}
+
+.language-tab.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.example {
+  margin-top: 0;
+}
+
+.example[hidden] {
+  display: none;
 }
 
 pre {

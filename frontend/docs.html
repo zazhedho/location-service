@@ -95,6 +95,7 @@
       <section class="section" id="endpoints">
         <h2>Endpoints</h2>
         <p class="section-copy">All endpoints return JSON. Add <code>code_format=short</code> when you only need child-level codes.</p>
+        <p class="note">Replace placeholders like <code>{province_code}</code> with values returned from the previous endpoint.</p>
         <div class="endpoint-list">
           <article>
             <strong>Health check</strong>
@@ -103,7 +104,7 @@
           <article>
             <strong>Total and scoped counts</strong>
             <code>GET /api/locations/stats</code>
-            <small>Optional: <code>province_code</code>, <code>regency_code</code>, <code>district_code</code></small>
+            <small>Optional: <code>province_code={province_code}</code>, <code>regency_code={regency_code}</code>, <code>district_code={district_code}</code></small>
           </article>
           <article>
             <strong>Provinces</strong>
@@ -111,19 +112,19 @@
           </article>
           <article>
             <strong>Regencies / cities</strong>
-            <code>GET /api/locations/regencies?province_code=11</code>
+            <code>GET /api/locations/regencies?province_code={province_code}</code>
           </article>
           <article>
             <strong>Districts</strong>
-            <code>GET /api/locations/districts?regency_code=11.01</code>
+            <code>GET /api/locations/districts?regency_code={regency_code}</code>
           </article>
           <article>
             <strong>Villages</strong>
-            <code>GET /api/locations/villages?district_code=11.01.01</code>
+            <code>GET /api/locations/villages?district_code={district_code}</code>
           </article>
           <article>
             <strong>Search by name</strong>
-            <code>GET /api/locations/search?q=aceh&amp;limit=25</code>
+            <code>GET /api/locations/search?q={query}&amp;limit={limit}</code>
           </article>
         </div>
       </section>
@@ -150,8 +151,16 @@
       <section class="section" id="examples">
         <h2>Implementation Examples</h2>
 
-        <article class="example">
-          <h3>JavaScript fetch</h3>
+        <div class="language-tabs" role="tablist" aria-label="Programming language examples">
+          <button class="language-tab active" type="button" role="tab" aria-selected="true" aria-controls="example-javascript" id="tab-javascript" data-example-tab="javascript">JavaScript</button>
+          <button class="language-tab" type="button" role="tab" aria-selected="false" aria-controls="example-typescript" id="tab-typescript" data-example-tab="typescript">TypeScript</button>
+          <button class="language-tab" type="button" role="tab" aria-selected="false" aria-controls="example-react" id="tab-react" data-example-tab="react">React</button>
+          <button class="language-tab" type="button" role="tab" aria-selected="false" aria-controls="example-go" id="tab-go" data-example-tab="go">Go</button>
+          <button class="language-tab" type="button" role="tab" aria-selected="false" aria-controls="example-laravel" id="tab-laravel" data-example-tab="laravel">Laravel</button>
+          <button class="language-tab" type="button" role="tab" aria-selected="false" aria-controls="example-python" id="tab-python" data-example-tab="python">Python</button>
+        </div>
+
+        <article class="example active" id="example-javascript" role="tabpanel" aria-labelledby="tab-javascript" data-example-panel="javascript">
           <pre><code>const BASE_URL = 'https://location-service-do.vercel.app'
 
 async function getProvinces() {
@@ -166,23 +175,31 @@ async function getProvinces() {
 }</code></pre>
         </article>
 
-        <article class="example">
-          <h3>Address dropdown flow</h3>
-          <pre><code>async function getRegencies(provinceCode) {
-  return getJSON(`/api/locations/regencies?province_code=${provinceCode}`)
+        <article class="example" id="example-typescript" role="tabpanel" aria-labelledby="tab-typescript" data-example-panel="typescript" hidden>
+          <pre><code>type LocationItem = {
+  code: string
+  full_code: string
+  name: string
+  level: string
 }
 
-async function getDistricts(regencyCode) {
-  return getJSON(`/api/locations/districts?regency_code=${regencyCode}`)
+type ApiResponse&lt;T&gt; = {
+  status: boolean
+  message: string
+  data: T
 }
 
-async function getVillages(districtCode) {
-  return getJSON(`/api/locations/villages?district_code=${districtCode}`)
+async function getRegencies(provinceCode: string): Promise&lt;LocationItem[]&gt; {
+  const response = await fetch(
+    `${BASE_URL}/api/locations/regencies?province_code=${provinceCode}`
+  )
+  const json: ApiResponse&lt;LocationItem[]&gt; = await response.json()
+  if (!json.status) throw new Error(json.message)
+  return json.data
 }</code></pre>
         </article>
 
-        <article class="example">
-          <h3>React example</h3>
+        <article class="example" id="example-react" role="tabpanel" aria-labelledby="tab-react" data-example-panel="react" hidden>
           <pre><code>import { useEffect, useState } from 'react'
 
 const BASE_URL = 'https://location-service-do.vercel.app'
@@ -212,6 +229,69 @@ export function ProvinceSelect() {
     &lt;/select&gt;
   )
 }</code></pre>
+        </article>
+
+        <article class="example" id="example-go" role="tabpanel" aria-labelledby="tab-go" data-example-panel="go" hidden>
+          <pre><code>package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+)
+
+type Response struct {
+	Status bool `json:"status"`
+	Data   []struct {
+		FullCode string `json:"full_code"`
+		Name     string `json:"name"`
+	} `json:"data"`
+}
+
+func main() {
+	res, err := http.Get("https://location-service-do.vercel.app/api/locations/provinces")
+	if err != nil {
+		panic(err)
+	}
+	defer res.Body.Close()
+
+	var payload Response
+	json.NewDecoder(res.Body).Decode(&payload)
+
+	for _, item := range payload.Data {
+		fmt.Println(item.FullCode, item.Name)
+	}
+}</code></pre>
+        </article>
+
+        <article class="example" id="example-laravel" role="tabpanel" aria-labelledby="tab-laravel" data-example-panel="laravel" hidden>
+          <p class="note">Requires Laravel HTTP Client.</p>
+          <pre><code>use Illuminate\Support\Facades\Http;
+
+$response = Http::get('https://location-service-do.vercel.app/api/locations/provinces');
+$json = $response->json();
+
+if (! $json['status']) {
+    throw new Exception($json['message']);
+}
+
+$provinces = $json['data'];</code></pre>
+        </article>
+
+        <article class="example" id="example-python" role="tabpanel" aria-labelledby="tab-python" data-example-panel="python" hidden>
+          <p class="note">Uses Python standard library.</p>
+          <pre><code>import json
+from urllib.request import urlopen
+
+base_url = 'https://location-service-do.vercel.app'
+with urlopen(f'{base_url}/api/locations/provinces', timeout=10) as response:
+    payload = json.load(response)
+
+if not payload['status']:
+    raise Exception(payload['message'])
+
+provinces = payload['data']
+print(provinces[0]['name'])</code></pre>
         </article>
       </section>
 
