@@ -7,6 +7,7 @@ import (
 )
 
 type Repository interface {
+	CountStats(ctx context.Context, scope domainlocation.StatsScope) (domainlocation.Stats, error)
 	ListProvinces(ctx context.Context) ([]domainlocation.Item, error)
 	ListRegencies(ctx context.Context, provinceCode, codeFormat string) ([]domainlocation.Item, error)
 	ListDistricts(ctx context.Context, regencyCode, codeFormat string) ([]domainlocation.Item, error)

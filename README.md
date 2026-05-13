@@ -77,6 +77,7 @@ The frontend is a lightweight console for trying the API directly from the brows
 ## Features
 
 - Province, regency/city, district, and village lookup APIs.
+- Location count stats for dashboard cards and first-load summaries.
 - Search API across all location levels.
 - PostgreSQL normalized tables for stable source-of-truth data.
 - Redis cache before database reads, with default TTL of six months.
@@ -280,6 +281,30 @@ Error:
 ```text
 GET /healthz
 ```
+
+### Stats
+
+```text
+GET /api/locations/stats
+GET /api/locations/stats?province_code=11
+GET /api/locations/stats?regency_code=11.01
+GET /api/locations/stats?district_code=11.01.01
+```
+
+Example data:
+
+```json
+{
+  "raw": 91599,
+  "provinces": 38,
+  "regencies": 514,
+  "districts": 7285,
+  "villages": 83762,
+  "total": 91600
+}
+```
+
+The frontend uses the global stats for the main overview cards. When a province, regency, or district is selected, it requests scoped stats so the current selection panel shows local counts without changing the global overview.
 
 ### Provinces
 

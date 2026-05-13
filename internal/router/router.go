@@ -25,6 +25,7 @@ func New(db *sql.DB, redisClient *redis.Client) http.Handler {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", health(db))
+	mux.HandleFunc("GET /api/locations/stats", handler.Stats)
 	mux.HandleFunc("GET /api/locations/provinces", handler.Provinces)
 	mux.HandleFunc("GET /api/locations/regencies", handler.Regencies)
 	mux.HandleFunc("GET /api/locations/districts", handler.Districts)

@@ -86,6 +86,11 @@
         <section class="view active" id="browseView">
           <nav class="breadcrumb" id="breadcrumb" aria-label="Location path"></nav>
 
+          <div class="summary-heading">
+            <span>Global Overview</span>
+            <small>All Indonesia locations</small>
+          </div>
+
           <div class="summary-grid">
             <div class="metric">
               <span data-short="Prov">Provinces</span>
@@ -104,6 +109,15 @@
               <strong id="villageCount">0</strong>
             </div>
           </div>
+
+          <section class="selection-summary is-hidden" id="selectionSummary">
+            <div class="selection-copy">
+              <span>Current Selection</span>
+              <strong id="selectionTitle">Indonesia</strong>
+              <p id="selectionSubtitle">Global overview is shown above. Select a location to see scoped counts.</p>
+            </div>
+            <div class="selection-metrics" id="selectionMetrics"></div>
+          </section>
 
           <div class="content-grid">
             <section class="panel">

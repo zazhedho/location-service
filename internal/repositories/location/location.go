@@ -4,8 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strings"
-
 	domainlocation "location-service/internal/domain/location"
 	interfacelocation "location-service/internal/interfaces/location"
 )
@@ -16,6 +14,70 @@ type repository struct {
 
 func NewRepository(db *sql.DB) interfacelocation.Repository {
 	return &repository{db: db}
+}
+
+func (r *repository) CountStats(ctx context.Context, scope domainlocation.StatsScope) (domainlocation.Stats, error) {
+	query, args := statsQuery(scope)
+
+	var stats domainlocation.Stats
+	err := r.db.QueryRowContext(ctx, query, args...).Scan(
+		&stats.Raw,
+		&stats.Provinces,
+		&stats.Regencies,
+		&stats.Districts,
+		&stats.Villages,
+	)
+	if err != nil && isTransient(err) {
+		err = r.db.QueryRowContext(ctx, query, args...).Scan(
+			&stats.Raw,
+			&stats.Provinces,
+			&stats.Regencies,
+			&stats.Districts,
+			&stats.Villages,
+		)
+	}
+	if err != nil {
+		return domainlocation.Stats{}, err
+	}
+	stats.Total = stats.Provinces + stats.Regencies + stats.Districts + stats.Villages
+	return stats, nil
+}
+
+func statsQuery(scope domainlocation.StatsScope) (string, []any) {
+	switch scope.Level {
+	case "province":
+		return `
+		SELECT
+			(SELECT COUNT(*) FROM raw_locations WHERE code = $1 OR code LIKE $1 || '.%'),
+			(SELECT COUNT(*) FROM provinces WHERE code = $1),
+			(SELECT COUNT(*) FROM regencies WHERE province_code = $1),
+			(SELECT COUNT(*) FROM districts WHERE province_code = $1),
+			(SELECT COUNT(*) FROM villages WHERE province_code = $1)`, []any{scope.Code}
+	case "regency":
+		return `
+		SELECT
+			(SELECT COUNT(*) FROM raw_locations WHERE code = $1 OR code LIKE $1 || '.%'),
+			0,
+			(SELECT COUNT(*) FROM regencies WHERE code = $1),
+			(SELECT COUNT(*) FROM districts WHERE regency_code = $1),
+			(SELECT COUNT(*) FROM villages WHERE regency_code = $1)`, []any{scope.Code}
+	case "district":
+		return `
+		SELECT
+			(SELECT COUNT(*) FROM raw_locations WHERE code = $1 OR code LIKE $1 || '.%'),
+			0,
+			0,
+			(SELECT COUNT(*) FROM districts WHERE code = $1),
+			(SELECT COUNT(*) FROM villages WHERE district_code = $1)`, []any{scope.Code}
+	default:
+		return `
+		SELECT
+			(SELECT COUNT(*) FROM raw_locations),
+			(SELECT COUNT(*) FROM provinces),
+			(SELECT COUNT(*) FROM regencies),
+			(SELECT COUNT(*) FROM districts),
+			(SELECT COUNT(*) FROM villages)`, nil
+	}
 }
 
 func (r *repository) ListProvinces(ctx context.Context) ([]domainlocation.Item, error) {
@@ -49,44 +111,4 @@ func (r *repository) Search(ctx context.Context, query string, limit int) ([]dom
 		WHERE name ILIKE '%' || $1 || '%'
 		ORDER BY level, code
 		LIMIT $2`, query, limit)
-}
-
-func codeExpression(codeFormat string) string {
-	if codeFormat == "short" {
-		return "short_code"
-	}
-	return "code"
-}
-
-func isTransient(err error) bool {
-	if err == nil {
-		return false
-	}
-	msg := err.Error()
-	return strings.Contains(msg, "connection reset by peer") ||
-		strings.Contains(msg, "broken pipe") ||
-		strings.Contains(msg, "EOF") ||
-		strings.Contains(msg, "connection refused") ||
-		strings.Contains(msg, "bad connection")
-}
-
-func (r *repository) queryLocations(ctx context.Context, query string, args ...any) ([]domainlocation.Item, error) {
-	rows, err := r.db.QueryContext(ctx, query, args...)
-	if err != nil && isTransient(err) {
-		rows, err = r.db.QueryContext(ctx, query, args...)
-	}
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	items := make([]domainlocation.Item, 0)
-	for rows.Next() {
-		var item domainlocation.Item
-		if err := rows.Scan(&item.Code, &item.FullCode, &item.Name, &item.Level, &item.ParentCode); err != nil {
-			return nil, err
-		}
-		items = append(items, item)
-	}
-	return items, rows.Err()
 }

@@ -4,6 +4,8 @@ const state = {
   apiBaseUrl: localStorage.getItem('location-service-api-base-url') || DEFAULT_API_BASE_URL,
   activeTab: 'browse',
   shortCodes: false,
+  statsLoaded: false,
+  statsAnimated: false,
   lastResponse: {},
 }
 
@@ -28,6 +30,10 @@ const els = {
   regencyCount: document.getElementById('regencyCount'),
   districtCount: document.getElementById('districtCount'),
   villageCount: document.getElementById('villageCount'),
+  selectionSummary: document.getElementById('selectionSummary'),
+  selectionTitle: document.getElementById('selectionTitle'),
+  selectionSubtitle: document.getElementById('selectionSubtitle'),
+  selectionMetrics: document.getElementById('selectionMetrics'),
   treeRoot: document.getElementById('treeRoot'),
   treeFilter: document.getElementById('treeFilter'),
   treeRowCount: document.getElementById('treeRowCount'),
@@ -90,6 +96,149 @@ function codeFormatParams() {
   return state.shortCodes ? { code_format: 'short' } : {}
 }
 
+function formatCount(value) {
+  return Number(value || 0).toLocaleString('en-US')
+}
+
+function animateCount(el, target, shouldAnimate) {
+  const end = Number(target || 0)
+  if (!shouldAnimate || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    el.textContent = formatCount(end)
+    return
+  }
+
+  const duration = 900
+  const startTime = performance.now()
+
+  function tick(now) {
+    const progress = Math.min((now - startTime) / duration, 1)
+    const eased = 1 - Math.pow(1 - progress, 3)
+    el.textContent = formatCount(Math.round(end * eased))
+    if (progress < 1) requestAnimationFrame(tick)
+  }
+
+  requestAnimationFrame(tick)
+}
+
+function setStats(stats) {
+  const shouldAnimate = !state.statsAnimated
+  animateCount(els.provinceCount, stats.provinces, shouldAnimate)
+  animateCount(els.regencyCount, stats.regencies, shouldAnimate)
+  animateCount(els.districtCount, stats.districts, shouldAnimate)
+  animateCount(els.villageCount, stats.villages, shouldAnimate)
+  state.statsLoaded = true
+  state.statsAnimated = true
+}
+
+async function loadStats() {
+  try {
+    const stats = await request('/api/locations/stats', {}, true)
+    setStats(stats)
+  } catch (err) {
+    state.statsLoaded = false
+    showToast(`Stats unavailable: ${err.message}`)
+  }
+}
+
+async function refreshData() {
+  await loadStats()
+  resetSelectionSummary()
+  await loadTree()
+}
+
+function scopedStatsParams(item) {
+  const code = item.full_code || item.code
+  switch (item.level) {
+    case 'province': return { province_code: code }
+    case 'regency': return { regency_code: code }
+    case 'district': return { district_code: code }
+    default: return {}
+  }
+}
+
+function scopedMetric(label, value, tone) {
+  return `
+    <div class="selection-metric selection-metric-${tone}">
+      <span>${label}</span>
+      <strong>${formatCount(value)}</strong>
+    </div>
+  `
+}
+
+function scopedInlineText(item, stats) {
+  if (item.level === 'province') {
+    return `${formatCount(stats.regencies)} reg · ${formatCount(stats.districts)} dist · ${formatCount(stats.villages)} vil`
+  }
+  if (item.level === 'regency') {
+    return `${formatCount(stats.districts)} dist · ${formatCount(stats.villages)} vil`
+  }
+  if (item.level === 'district') {
+    return `${formatCount(stats.villages)} vil`
+  }
+  return ''
+}
+
+function resetSelectionSummary() {
+  els.selectionSummary.classList.add('is-hidden')
+  els.selectionTitle.textContent = 'Indonesia'
+  els.selectionSubtitle.textContent = 'Global overview is shown above. Select a location to see scoped counts.'
+  els.selectionMetrics.innerHTML = ''
+}
+
+function setInlineStats(node, text) {
+  if (!node) return
+  const inlineStats = node.querySelector(':scope > .tree-row .tree-inline-stats')
+  if (!inlineStats) return
+  inlineStats.textContent = text
+  node.classList.toggle('has-inline-stats', Boolean(text))
+}
+
+function renderScopedStats(item, stats, node) {
+  const levelLabel = item.level.charAt(0).toUpperCase() + item.level.slice(1)
+  setInlineStats(node, scopedInlineText(item, stats))
+  els.selectionSummary.classList.remove('is-hidden')
+  els.selectionTitle.textContent = item.name
+  els.selectionSubtitle.textContent = `${levelLabel} code ${item.full_code || item.code}`
+
+  if (item.level === 'province') {
+    els.selectionMetrics.innerHTML = [
+      scopedMetric('Regencies', stats.regencies, 'regency'),
+      scopedMetric('Districts', stats.districts, 'district'),
+      scopedMetric('Villages', stats.villages, 'village'),
+    ].join('')
+    return
+  }
+
+  if (item.level === 'regency') {
+    els.selectionMetrics.innerHTML = [
+      scopedMetric('Districts', stats.districts, 'district'),
+      scopedMetric('Villages', stats.villages, 'village'),
+    ].join('')
+    return
+  }
+
+  if (item.level === 'district') {
+    els.selectionMetrics.innerHTML = scopedMetric('Villages', stats.villages, 'village')
+    return
+  }
+
+  els.selectionMetrics.innerHTML = ''
+}
+
+async function loadScopedStats(item, node) {
+  setInlineStats(node, 'Counting…')
+  try {
+    const stats = await request('/api/locations/stats', scopedStatsParams(item), true)
+    renderScopedStats(item, stats, node)
+  } catch (err) {
+    setInlineStats(node, '')
+    els.selectionSummary.classList.remove('is-hidden')
+    els.selectionTitle.textContent = item.name
+    els.selectionSubtitle.textContent = `Scoped counts unavailable: ${err.message}`
+    els.selectionMetrics.innerHTML = ''
+  }
+}
+
 // ── Health ──
 
 async function checkHealth() {
@@ -108,13 +257,6 @@ async function checkHealth() {
 // ── Tree View ──
 
 const CHEVRON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>'
-
-const LEVEL_ORDER = ['province', 'regency', 'district', 'village']
-
-function nextLevel(level) {
-  const idx = LEVEL_ORDER.indexOf(level)
-  return idx < LEVEL_ORDER.length - 1 ? LEVEL_ORDER[idx + 1] : null
-}
 
 function fetchChildren(item) {
   const p = codeFormatParams()
@@ -157,11 +299,14 @@ function createTreeNode(item) {
   name.className = 'tree-name'
   name.textContent = item.name
 
+  const inlineStats = document.createElement('span')
+  inlineStats.className = 'tree-inline-stats'
+
   const badge = document.createElement('span')
   badge.className = `tree-badge tree-badge-${item.level}`
   badge.textContent = item.level
 
-  row.append(chevron, code, name, badge)
+  row.append(chevron, code, name, inlineStats, badge)
   node.appendChild(row)
 
   if (!isLeaf) {
@@ -188,6 +333,7 @@ async function toggleNode(node, item) {
 
   node.classList.add('expanded')
   row.setAttribute('aria-expanded', 'true')
+  loadScopedStats(item, node)
 
   // already loaded
   if (children.dataset.loaded) return
@@ -209,7 +355,6 @@ async function toggleNode(node, item) {
       children.appendChild(empty)
     } else {
       items.forEach(child => children.appendChild(createTreeNode(child)))
-      updateCounts(item.level, items.length)
     }
   } catch (err) {
     children.removeChild(loading)
@@ -222,13 +367,6 @@ async function toggleNode(node, item) {
   }
 }
 
-function updateCounts(parentLevel, count) {
-  const child = nextLevel(parentLevel)
-  if (child === 'regency') els.regencyCount.textContent = count
-  if (child === 'district') els.districtCount.textContent = count
-  if (child === 'village') els.villageCount.textContent = count
-}
-
 async function loadTree() {
   els.treeRoot.innerHTML = ''
   const loading = document.createElement('div')
@@ -239,7 +377,7 @@ async function loadTree() {
   try {
     const provinces = await request('/api/locations/provinces')
     els.treeRoot.removeChild(loading)
-    els.provinceCount.textContent = provinces.length
+    if (!state.statsLoaded) els.provinceCount.textContent = provinces.length
     els.treeRowCount.textContent = provinces.length
     provinces.forEach(p => els.treeRoot.appendChild(createTreeNode(p)))
   } catch (err) {
@@ -427,7 +565,7 @@ function bindEvents() {
     state.apiBaseUrl = DEFAULT_API_BASE_URL
     els.apiBaseUrl.value = DEFAULT_API_BASE_URL
     localStorage.removeItem('location-service-api-base-url')
-    checkHealth(); loadTree()
+    checkHealth(); refreshData()
   })
   els.openSidebar.addEventListener('click', openSidebar)
   els.closeSidebar.addEventListener('click', closeSidebar)
@@ -435,7 +573,7 @@ function bindEvents() {
   els.apiBaseUrl.addEventListener('change', () => {
     state.apiBaseUrl = els.apiBaseUrl.value.trim() || DEFAULT_API_BASE_URL
     localStorage.setItem('location-service-api-base-url', state.apiBaseUrl)
-    checkHealth(); loadTree()
+    checkHealth(); refreshData()
   })
   els.refreshHealth.addEventListener('click', checkHealth)
   els.tabs.forEach(b => b.addEventListener('click', () => { switchTab(b.dataset.tab); closeSidebar() }))
@@ -447,7 +585,7 @@ function bindEvents() {
     const open = els.responseDrawer.classList.toggle('open')
     els.responseDrawerToggle.setAttribute('aria-expanded', String(open))
   })
-  els.reloadData.addEventListener('click', loadTree)
+  els.reloadData.addEventListener('click', refreshData)
   els.resetData.addEventListener('click', () => {
     state.shortCodes = false
     els.shortCodeToggle.checked = false
@@ -457,8 +595,10 @@ function bindEvents() {
     els.regencyCount.textContent = '0'
     els.districtCount.textContent = '0'
     els.villageCount.textContent = '0'
+    state.statsAnimated = false
+    resetSelectionSummary()
     history.replaceState(null, '', location.pathname)
-    loadTree()
+    refreshData()
     showToast('Reset')
   })
 
@@ -492,8 +632,9 @@ function bindEvents() {
 async function init() {
   bindEvents()
   switchTab('browse')
+  resetSelectionSummary()
   await checkHealth()
-  await loadTree()
+  await refreshData()
 }
 
 init()

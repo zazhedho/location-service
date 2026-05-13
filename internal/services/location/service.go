@@ -26,6 +26,23 @@ func NewService(repo interfacelocation.Repository, redisClients ...*redis.Client
 	return &service{repo: repo, redis: redisClient}
 }
 
+func (s *service) Stats(ctx context.Context, provinceCode, regencyCode, districtCode string) (domainlocation.Stats, error) {
+	scope, err := resolveStatsScope(provinceCode, regencyCode, districtCode)
+	if err != nil {
+		return domainlocation.Stats{}, err
+	}
+	key := locationcache.ScopedStatsKey(scope)
+	if stats, ok := locationcache.GetStats(ctx, s.redis, key); ok {
+		return stats, nil
+	}
+	stats, err := s.repo.CountStats(ctx, scope)
+	if err != nil {
+		return domainlocation.Stats{}, err
+	}
+	locationcache.SetStats(ctx, s.redis, key, stats)
+	return stats, nil
+}
+
 func (s *service) ListProvinces(ctx context.Context) ([]domainlocation.Item, error) {
 	key := locationcache.ProvinceKey()
 	if items, ok := locationcache.Get(ctx, s.redis, key); ok {
@@ -127,26 +144,4 @@ func (s *service) listVillagesByDistrict(ctx context.Context, districtCode, code
 	}
 	locationcache.Set(ctx, s.redis, key, items)
 	return items, nil
-}
-
-func normalizeCodeFormat(value string) string {
-	if strings.EqualFold(strings.TrimSpace(value), "short") {
-		return "short"
-	}
-	return "full"
-}
-
-func resolveChildCode(parentCode, childCode, childName string) (string, error) {
-	childCode = strings.TrimSpace(childCode)
-	if childCode == "" {
-		return "", errors.New(childName + " is required")
-	}
-	if strings.Contains(childCode, ".") {
-		return childCode, nil
-	}
-	parentCode = strings.TrimSpace(parentCode)
-	if parentCode == "" {
-		return "", errors.New("province_code is required when " + childName + " is short")
-	}
-	return parentCode + "." + childCode, nil
 }

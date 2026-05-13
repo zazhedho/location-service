@@ -63,6 +63,96 @@
       "name": "Locations",
       "item": [
         {
+          "name": "Get Location Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/locations/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "locations",
+                "stats"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Location Stats - Province Scope",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/locations/stats?province_code={{province_code}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "locations",
+                "stats"
+              ],
+              "query": [
+                {
+                  "key": "province_code",
+                  "value": "{{province_code}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Location Stats - Regency Scope",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/locations/stats?regency_code={{regency_code}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "locations",
+                "stats"
+              ],
+              "query": [
+                {
+                  "key": "regency_code",
+                  "value": "{{regency_code}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Location Stats - District Scope",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/locations/stats?district_code={{district_code}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "locations",
+                "stats"
+              ],
+              "query": [
+                {
+                  "key": "district_code",
+                  "value": "{{district_code}}"
+                }
+              ]
+            }
+          }
+        },
+        {
           "name": "Get Provinces",
           "request": {
             "method": "GET",

@@ -15,3 +15,17 @@ type ImportStats struct {
 	Districts int
 	Villages  int
 }
+
+type Stats struct {
+	Raw       int `json:"raw"`
+	Provinces int `json:"provinces"`
+	Regencies int `json:"regencies"`
+	Districts int `json:"districts"`
+	Villages  int `json:"villages"`
+	Total     int `json:"total"`
+}
+
+type StatsScope struct {
+	Level string
+	Code  string
+}

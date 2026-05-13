@@ -47,7 +47,10 @@ CREATE TABLE IF NOT EXISTS villages (
 
 CREATE INDEX IF NOT EXISTS idx_raw_locations_name ON raw_locations (name);
 CREATE INDEX IF NOT EXISTS idx_regencies_province ON regencies (province_code, name);
+CREATE INDEX IF NOT EXISTS idx_districts_province ON districts (province_code);
 CREATE INDEX IF NOT EXISTS idx_districts_regency ON districts (regency_code, name);
+CREATE INDEX IF NOT EXISTS idx_villages_province ON villages (province_code);
+CREATE INDEX IF NOT EXISTS idx_villages_regency ON villages (regency_code);
 CREATE INDEX IF NOT EXISTS idx_villages_district ON villages (district_code, name);
 CREATE INDEX IF NOT EXISTS idx_provinces_name ON provinces (name);
 CREATE INDEX IF NOT EXISTS idx_regencies_name ON regencies (name);

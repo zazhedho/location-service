@@ -19,6 +19,12 @@ func NewHandler(service interfacelocation.Service) *Handler {
 	return &Handler{service: service}
 }
 
+func (h *Handler) Stats(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query()
+	stats, err := h.service.Stats(r.Context(), query.Get("province_code"), query.Get("regency_code"), query.Get("district_code"))
+	respond(w, r, stats, err)
+}
+
 func (h *Handler) Provinces(w http.ResponseWriter, r *http.Request) {
 	items, err := h.service.ListProvinces(r.Context())
 	respond(w, r, items, err)
@@ -69,7 +75,8 @@ func isClientError(message string) bool {
 		"district_code is required",
 		"q is required",
 		"limit must be a number between 1 and 500",
-		"province_code is required when regency_code is short":
+		"province_code is required when regency_code is short",
+		"province_code is required when district_code is short":
 		return true
 	default:
 		return false

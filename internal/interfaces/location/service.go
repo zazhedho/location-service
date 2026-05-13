@@ -7,6 +7,7 @@ import (
 )
 
 type Service interface {
+	Stats(ctx context.Context, provinceCode, regencyCode, districtCode string) (domainlocation.Stats, error)
 	ListProvinces(ctx context.Context) ([]domainlocation.Item, error)
 	ListRegencies(ctx context.Context, provinceCode, codeFormat string) ([]domainlocation.Item, error)
 	ListDistricts(ctx context.Context, provinceCode, regencyCode, codeFormat string) ([]domainlocation.Item, error)
