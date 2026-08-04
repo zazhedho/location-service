@@ -29,7 +29,7 @@ type BoundaryImportStats struct {
 
 type boundaryRow struct {
 	Code        string
-	Centroid    domainlocation.Centroid
+	Coordinates domainlocation.Coordinates
 	LeafletPath json.RawMessage
 }
 
@@ -102,7 +102,7 @@ func ImportBoundaries(ctx context.Context, db *sql.DB, paths []string) (Boundary
 				stats.SkippedUnknown++
 				return nil
 			}
-			if _, err := stmt.ExecContext(ctx, row.Code, row.Centroid.Lat, row.Centroid.Lng, string(row.LeafletPath)); err != nil {
+			if _, err := stmt.ExecContext(ctx, row.Code, row.Coordinates.Latitude, row.Coordinates.Longitude, string(row.LeafletPath)); err != nil {
 				return err
 			}
 			stats.Imported++
@@ -349,7 +349,7 @@ func validateBoundary(code, latitude, longitude, path string) (boundaryRow, erro
 	}
 	return boundaryRow{
 		Code:        code,
-		Centroid:    domainlocation.Centroid{Lat: lat, Lng: lng},
+		Coordinates: domainlocation.Coordinates{Latitude: lat, Longitude: lng},
 		LeafletPath: json.RawMessage(path),
 	}, nil
 }

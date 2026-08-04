@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	importer "location-service/cmd/importer"
 	"location-service/infrastructure/database"
@@ -33,12 +34,16 @@ func main() {
 		if err := importBoundaries(); err != nil {
 			log.Fatal(err)
 		}
+	case "import-islands":
+		if err := importIslands(); err != nil {
+			log.Fatal(err)
+		}
 	case "migrate":
 		if err := migrate(); err != nil {
 			log.Fatal(err)
 		}
 	default:
-		log.Fatalf("unknown command %q; use serve, import, import-boundaries, or migrate", cmd)
+		log.Fatalf("unknown command %q; use serve, import, import-boundaries, import-islands, or migrate", cmd)
 	}
 }
 
@@ -155,8 +160,55 @@ func importBoundaries() error {
 	if err != nil {
 		return err
 	}
+	invalidateCache("location:boundary:*")
 	log.Printf("boundary import done: read=%d imported=%d skipped_unknown=%d", stats.Read, stats.Imported, stats.SkippedUnknown)
 	return nil
+}
+
+func importIslands() error {
+	fs := flag.NewFlagSet("import-islands", flag.ExitOnError)
+	path := fs.String("file", "../wilayah-indonesia-api/init-db/02-data.sql", "path to SQL containing wilayah_pulau")
+	if err := fs.Parse(commandArgs()); err != nil {
+		return err
+	}
+
+	db, err := database.Open()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	if err := database.Migrate(db); err != nil {
+		return fmt.Errorf("migrate schema: %w", err)
+	}
+	stats, err := importer.ImportIslands(context.Background(), db, *path)
+	if err != nil {
+		return err
+	}
+	invalidateCache("location:islands:*")
+	log.Printf("island import done: read=%d imported=%d skipped=%d duplicate_codes=%d", stats.RowsRead, stats.RowsImported, stats.RowsSkipped, stats.DuplicateCodes)
+	return nil
+}
+
+func invalidateCache(pattern string) {
+	client, err := database.OpenRedis()
+	if err != nil {
+		log.Printf("cache invalidation skipped: %v", err)
+		return
+	}
+	defer client.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	iterator := client.Scan(ctx, 0, pattern, 1000).Iterator()
+	for iterator.Next(ctx) {
+		if err := client.Del(ctx, iterator.Val()).Err(); err != nil {
+			log.Printf("cache invalidation failed: %v", err)
+			return
+		}
+	}
+	if err := iterator.Err(); err != nil {
+		log.Printf("cache invalidation failed: %v", err)
+	}
 }
 
 func migrate() error {

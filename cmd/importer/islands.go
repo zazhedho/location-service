@@ -20,6 +20,7 @@ type IslandImportStats struct {
 	RowsRead       int
 	RowsImported   int
 	DuplicateCodes int
+	RowsSkipped    int
 }
 
 var (
@@ -125,14 +126,15 @@ func ParseIslandTuples(r io.Reader, emit func(domainisland.Island) error) (Islan
 		}
 		pending = remainder
 		for _, tuple := range tuples {
+			stats.RowsRead++
 			item, err := parseIslandTuple(tuple)
 			if err != nil {
-				return err
+				stats.RowsSkipped++
+				continue
 			}
 			if err := emit(item); err != nil {
 				return err
 			}
-			stats.RowsRead++
 		}
 		if done {
 			inInsert = false
@@ -234,21 +236,42 @@ func parseIslandTuple(raw string) (domainisland.Island, error) {
 		return domainisland.Island{}, errors.New("invalid island longitude")
 	}
 	status, _, err := textValue(fields[4])
-	if err != nil || len(status) > 10 {
+	if err != nil {
 		return domainisland.Island{}, errors.New("invalid island status")
 	}
 
 	var area *float64
 	var notes string
 	if len(fields) == 7 {
-		area, err = floatValueFromSQL(fields[5])
-		if err != nil || area != nil && (math.IsNaN(*area) || math.IsInf(*area, 0) || *area < 0) {
-			return domainisland.Island{}, errors.New("invalid island area")
-		}
 		notes, _, err = textValue(fields[6])
 		if err != nil {
 			return domainisland.Island{}, errors.New("invalid island notes")
 		}
+		if latitude == nil && longitude == nil && (notes == "BP" || notes == "TBP") {
+			area, err = floatValueFromSQL(fields[4])
+			if err == nil && area != nil {
+				// Source has one row shifted right: area, notes, then status.
+				status = notes
+				notes, _, err = textValue(fields[5])
+			}
+		} else {
+			area, err = floatValueFromSQL(fields[5])
+			if err != nil && notes == "" {
+				// Source has one known row with an unquoted note shifted into the area column.
+				notes, _, err = textValue(fields[5])
+				area = nil
+			}
+		}
+		if err != nil || area != nil && (math.IsNaN(*area) || math.IsInf(*area, 0) || *area < 0) {
+			return domainisland.Island{}, errors.New("invalid island area")
+		}
+		if len(status) > 10 && notes == "" {
+			// Source uses the status column for notes on some rows.
+			notes, status = status, ""
+		}
+	}
+	if len(status) > 10 {
+		return domainisland.Island{}, errors.New("invalid island status")
 	}
 
 	return domainisland.Island{

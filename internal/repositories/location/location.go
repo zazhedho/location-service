@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
+
 	domainlocation "location-service/internal/domain/location"
 	interfacelocation "location-service/internal/interfaces/location"
 )
@@ -119,11 +121,13 @@ func (r *repository) GetDetail(ctx context.Context, code string) (domainlocation
 	var lat, lng sql.NullFloat64
 	var hasBoundary bool
 	err := r.db.QueryRowContext(ctx, `
-		SELECT l.code, l.name, l.level, b.centroid_lat, b.centroid_lng, b.code IS NOT NULL
+		SELECT l.code, l.code, l.name, l.level,
+		       b.centroid_lat, b.centroid_lng, b.code IS NOT NULL
 		FROM raw_locations l
 		LEFT JOIN location_boundaries b ON b.code = l.code
 		WHERE l.code = $1`, code).Scan(
 		&detail.Code,
+		&detail.FullCode,
 		&detail.Name,
 		&level,
 		&lat,
@@ -137,9 +141,12 @@ func (r *repository) GetDetail(ctx context.Context, code string) (domainlocation
 		return domainlocation.Detail{}, err
 	}
 	detail.Level = levelName(level)
+	if index := strings.LastIndexByte(detail.Code, '.'); index > 0 {
+		detail.ParentCode = detail.Code[:index]
+	}
 	detail.HasBoundary = hasBoundary
 	if lat.Valid && lng.Valid {
-		detail.Centroid = &domainlocation.Centroid{Lat: lat.Float64, Lng: lng.Float64}
+		detail.Coordinates = &domainlocation.Coordinates{Latitude: lat.Float64, Longitude: lng.Float64}
 	}
 	return detail, nil
 }
@@ -148,12 +155,14 @@ func (r *repository) GetBoundary(ctx context.Context, code string) (domainlocati
 	var boundary domainlocation.Boundary
 	var path []byte
 	err := r.db.QueryRowContext(ctx, `
-		SELECT code, centroid_lat, centroid_lng, leaflet_path
-		FROM location_boundaries
-		WHERE code = $1`, code).Scan(
+		SELECT b.code, l.name, b.centroid_lat, b.centroid_lng, b.leaflet_path
+		FROM location_boundaries b
+		JOIN raw_locations l ON l.code = b.code
+		WHERE b.code = $1`, code).Scan(
 		&boundary.Code,
-		&boundary.Centroid.Lat,
-		&boundary.Centroid.Lng,
+		&boundary.Name,
+		&boundary.Latitude,
+		&boundary.Longitude,
 		&path,
 	)
 	if err != nil {

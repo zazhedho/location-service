@@ -20,7 +20,7 @@ func TestParseBoundarySQL(t *testing.T) {
 	if len(rows) != 2 {
 		t.Fatalf("parsed %d rows, want 2", len(rows))
 	}
-	if rows[0].Code != "11.01" || rows[0].Centroid.Lat != 3.1 || rows[0].Centroid.Lng != 97.4 {
+	if rows[0].Code != "11.01" || rows[0].Coordinates.Latitude != 3.1 || rows[0].Coordinates.Longitude != 97.4 {
 		t.Fatalf("unexpected first row: %+v", rows[0])
 	}
 }

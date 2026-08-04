@@ -9,8 +9,11 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
+	islandhandler "location-service/internal/handlers/http/island"
 	locationhandler "location-service/internal/handlers/http/location"
+	islandrepo "location-service/internal/repositories/island"
 	locationrepo "location-service/internal/repositories/location"
+	islandservice "location-service/internal/services/island"
 	locationservice "location-service/internal/services/location"
 	"location-service/middlewares"
 	"location-service/pkg/messages"
@@ -22,6 +25,7 @@ func New(db *sql.DB, redisClient *redis.Client) http.Handler {
 	repo := locationrepo.NewRepository(db)
 	service := locationservice.NewService(repo, redisClient)
 	handler := locationhandler.NewHandler(service)
+	islandHandler := islandhandler.NewHandler(islandservice.NewService(islandrepo.NewRepository(db), redisClient))
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", health(db))
@@ -33,6 +37,8 @@ func New(db *sql.DB, redisClient *redis.Client) http.Handler {
 	mux.HandleFunc("GET /api/locations/search", handler.Search)
 	mux.HandleFunc("GET /api/locations/{code}/boundary", handler.Boundary)
 	mux.HandleFunc("GET /api/locations/{code}", handler.Detail)
+	mux.HandleFunc("GET /api/islands", islandHandler.List)
+	mux.HandleFunc("GET /api/islands/{code}", islandHandler.Detail)
 	return middlewares.CORS(utils.WithRequestID(mux))
 }
 

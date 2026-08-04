@@ -79,6 +79,8 @@ The frontend is a lightweight console for trying the API directly from the brows
 - Province, regency/city, district, and village lookup APIs.
 - Location count stats for dashboard cards and first-load summaries.
 - Search API across all location levels.
+- Boundary/centroid API and an interactive Leaflet map.
+- Paginated island list and detail APIs.
 - PostgreSQL normalized tables for stable source-of-truth data.
 - Redis cache before database reads, with default TTL of six months.
 - One-time automatic seed on first startup when `raw_locations` is empty.
@@ -238,6 +240,13 @@ go run . import -file <path-to-location-data.sql>
 ```
 
 Imports a location data SQL file into `raw_locations`, then bulk-loads normalized tables. Import truncates existing location tables by default.
+
+```bash
+go run . import-boundaries -dir ../wilayah-indonesia-api/init-db
+go run . import-islands -file ../wilayah-indonesia-api/init-db/02-data.sql
+```
+
+Imports boundary gzip files and island tuples from the cloned source project. Both imports run in a transaction and invalidate their Redis cache prefix after success.
 
 ```bash
 go run . serve
@@ -405,6 +414,24 @@ Rules:
 - `limit` defaults to `50`.
 - `limit` must be between `1` and `500`.
 
+### Location Detail and Boundary
+
+```text
+GET /api/locations/11.01
+GET /api/locations/11.01/boundary
+```
+
+The detail response contains `coordinates` and `has_boundary`. Polygon data is returned separately as `leaflet_path`, using Leaflet `[latitude, longitude]` order rather than GeoJSON order.
+
+### Islands
+
+```text
+GET /api/islands?province_code=11&page=1&limit=50
+GET /api/islands/11.01.40001
+```
+
+`page` defaults to `1`; `limit` defaults to `50` and is capped at `500`. Island status values are preserved from the source dataset (`BP`/`TBP`) without expanding their meaning because the cloned source does not document them.
+
 ## Code Format
 
 Default API responses use full administrative codes:
@@ -436,6 +463,9 @@ location:regencies:{province_code}:{code_format}
 location:districts:{regency_code}:{code_format}
 location:villages:{district_code}:{code_format}
 location:search:{query_hash}:{limit}
+location:boundary:{code}
+location:islands:list:{province_code}:{page}:{limit}
+location:islands:detail:{code}
 ```
 
 Default TTL:

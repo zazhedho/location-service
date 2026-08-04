@@ -34,9 +34,11 @@ func (handlerRepository) Search(context.Context, string, int) ([]domainlocation.
 func (handlerRepository) GetDetail(context.Context, string) (domainlocation.Detail, error) {
 	return domainlocation.Detail{
 		Code:        "11.01",
+		FullCode:    "11.01",
 		Name:        "Kabupaten Aceh Selatan",
 		Level:       "regency",
-		Centroid:    &domainlocation.Centroid{Lat: 3.1, Lng: 97.4},
+		ParentCode:  "11",
+		Coordinates: &domainlocation.Coordinates{Latitude: 3.1, Longitude: 97.4},
 		HasBoundary: true,
 	}, nil
 }
@@ -45,8 +47,10 @@ func (handlerRepository) GetBoundary(_ context.Context, code string) (domainloca
 		return domainlocation.Boundary{}, domainlocation.ErrBoundaryNotFound
 	}
 	return domainlocation.Boundary{
-		Code:     code,
-		Centroid: domainlocation.Centroid{Lat: 3.1, Lng: 97.4},
+		Code:      code,
+		Name:      "Kabupaten Aceh Selatan",
+		Latitude:  3.1,
+		Longitude: 97.4,
 		LeafletPath: []byte(
 			`[[[1,2],[3,4],[1,2]]]`,
 		),
@@ -64,7 +68,7 @@ func TestBoundaryResponseAndCacheControl(t *testing.T) {
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", recorder.Code)
 	}
-	if got := recorder.Header().Get("Cache-Control"); got != "public, max-age=86400" {
+	if got := recorder.Header().Get("Cache-Control"); got != "public, max-age=86400, stale-while-revalidate=86400" {
 		t.Fatalf("cache control = %q", got)
 	}
 	body := recorder.Body.String()
@@ -92,7 +96,7 @@ func TestBoundaryNotFoundUsesShortCache(t *testing.T) {
 	}
 }
 
-func TestDetailResponseIncludesCentroid(t *testing.T) {
+func TestDetailResponseIncludesCoordinates(t *testing.T) {
 	handler := NewHandler(locationservice.NewService(handlerRepository{}))
 	request := httptest.NewRequest(http.MethodGet, "/api/locations/11.01", nil)
 	request.SetPathValue("code", "11.01")
@@ -104,7 +108,7 @@ func TestDetailResponseIncludesCentroid(t *testing.T) {
 		t.Fatalf("status = %d, want 200", recorder.Code)
 	}
 	body := recorder.Body.String()
-	if !strings.Contains(body, `"centroid":{"lat":3.1,"lng":97.4}`) || !strings.Contains(body, `"has_boundary":true`) {
+	if !strings.Contains(body, `"coordinates":{"latitude":3.1,"longitude":97.4}`) || !strings.Contains(body, `"has_boundary":true`) {
 		t.Fatalf("detail fields missing: %s", body)
 	}
 }

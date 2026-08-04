@@ -20,23 +20,27 @@ type Item struct {
 	ParentCode string `json:"parent_code,omitempty"`
 }
 
-type Centroid struct {
-	Lat float64 `json:"lat"`
-	Lng float64 `json:"lng"`
+type Coordinates struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
 }
 
 type Boundary struct {
 	Code        string          `json:"code"`
-	Centroid    Centroid        `json:"centroid"`
+	Name        string          `json:"name,omitempty"`
+	Latitude    float64         `json:"latitude"`
+	Longitude   float64         `json:"longitude"`
 	LeafletPath json.RawMessage `json:"leaflet_path"`
 }
 
 type Detail struct {
-	Code        string    `json:"code"`
-	Name        string    `json:"name"`
-	Level       string    `json:"level"`
-	Centroid    *Centroid `json:"centroid"`
-	HasBoundary bool      `json:"has_boundary"`
+	Code        string       `json:"code"`
+	FullCode    string       `json:"full_code"`
+	Name        string       `json:"name"`
+	Level       string       `json:"level"`
+	ParentCode  string       `json:"parent_code,omitempty"`
+	Coordinates *Coordinates `json:"coordinates,omitempty"`
+	HasBoundary bool         `json:"has_boundary"`
 }
 
 type ImportStats struct {

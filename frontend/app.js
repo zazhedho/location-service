@@ -144,9 +144,9 @@ function ensureMap() {
 }
 
 function coordinatesFor(value) {
-  const coordinates = value?.coordinates || value
-  const latitude = Number(coordinates?.latitude)
-  const longitude = Number(coordinates?.longitude)
+  const coordinates = value?.coordinates || value?.centroid || value
+  const latitude = Number(coordinates?.latitude ?? coordinates?.lat)
+  const longitude = Number(coordinates?.longitude ?? coordinates?.lng)
   if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null
   if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return null
   return [latitude, longitude]
@@ -154,14 +154,20 @@ function coordinatesFor(value) {
 
 function normalizeLeafletPath(path) {
   if (!Array.isArray(path)) return []
-  return path.map((point) => {
-    if (!Array.isArray(point) || point.length < 2) return null
-    const latitude = Number(point[0])
-    const longitude = Number(point[1])
+  if (path.length >= 2 && !Array.isArray(path[0]) && !Array.isArray(path[1])) {
+    const latitude = Number(path[0])
+    const longitude = Number(path[1])
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null
     if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return null
     return [latitude, longitude]
-  }).filter(Boolean)
+  }
+  return path.map(normalizeLeafletPath).filter((item) => Array.isArray(item) && item.length)
+}
+
+function leafletPointCount(path) {
+  if (!Array.isArray(path)) return 0
+  if (path.length === 2 && path.every(Number.isFinite)) return 1
+  return path.reduce((total, item) => total + leafletPointCount(item), 0)
 }
 
 function escapeHTML(value) {
@@ -188,7 +194,7 @@ function renderMapLocation(item, detail, boundary, boundaryError) {
   const popup = locationPopup(location)
   clearMapLayers()
 
-  if (path.length >= 3) {
+  if (leafletPointCount(path) >= 3) {
     const polygon = window.L.polygon(path, {
       color: '#4f46e5',
       fillColor: '#818cf8',

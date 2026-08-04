@@ -62,7 +62,7 @@ func (h *Handler) Detail(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Boundary(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Cache-Control", "public, max-age=86400")
+	w.Header().Set("Cache-Control", "public, max-age=86400, stale-while-revalidate=86400")
 	boundary, err := h.service.Boundary(r.Context(), r.PathValue("code"))
 	if errors.Is(err, domainlocation.ErrBoundaryNotFound) {
 		w.Header().Set("Cache-Control", "public, max-age=60")
