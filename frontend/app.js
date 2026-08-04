@@ -7,6 +7,9 @@ const state = {
   statsLoaded: false,
   statsAnimated: false,
   lastResponse: {},
+  map: null,
+  mapLayers: null,
+  mapSelectionId: 0,
 }
 
 const els = {
@@ -34,6 +37,9 @@ const els = {
   selectionTitle: document.getElementById('selectionTitle'),
   selectionSubtitle: document.getElementById('selectionSubtitle'),
   selectionMetrics: document.getElementById('selectionMetrics'),
+  mapStatus: document.getElementById('mapStatus'),
+  mapMessage: document.getElementById('mapMessage'),
+  locationMap: document.getElementById('locationMap'),
   treeRoot: document.getElementById('treeRoot'),
   treeFilter: document.getElementById('treeFilter'),
   treeRowCount: document.getElementById('treeRowCount'),
@@ -91,9 +97,172 @@ async function request(path, params = {}, silent = false) {
   const payload = await res.json().catch(() => ({}))
   if (!silent) setLastResponse(`GET ${url.toString()}`, payload)
   if (!res.ok || payload.status === false) {
-    throw new Error(payload?.error?.message || payload?.message || `Request failed (${res.status})`)
+    const error = new Error(payload?.error?.message || payload?.message || `Request failed (${res.status})`)
+    error.status = res.status
+    throw error
   }
   return Array.isArray(payload.data) ? payload.data : payload.data || []
+}
+
+function setMapStatus(message, kind = '') {
+  els.mapStatus.textContent = message
+  els.mapStatus.dataset.state = kind
+}
+
+function setMapMessage(message, kind = '') {
+  els.mapMessage.textContent = message
+  els.mapMessage.dataset.state = kind
+  els.mapMessage.hidden = !message
+}
+
+function clearMapLayers() {
+  state.mapLayers?.clearLayers()
+}
+
+function ensureMap() {
+  if (state.map) return state.map
+  if (!window.L) {
+    setMapStatus('Map library unavailable.', 'error')
+    setMapMessage('Map library could not be loaded.', 'error')
+    return null
+  }
+
+  try {
+    const map = window.L.map(els.locationMap).setView([-2.5, 118], 5)
+    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 19,
+    }).addTo(map)
+    state.mapLayers = window.L.layerGroup().addTo(map)
+    state.map = map
+    return map
+  } catch (error) {
+    setMapStatus('Map unavailable.', 'error')
+    setMapMessage(error.message || 'Map could not be initialized.', 'error')
+    return null
+  }
+}
+
+function coordinatesFor(value) {
+  const coordinates = value?.coordinates || value
+  const latitude = Number(coordinates?.latitude)
+  const longitude = Number(coordinates?.longitude)
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null
+  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return null
+  return [latitude, longitude]
+}
+
+function normalizeLeafletPath(path) {
+  if (!Array.isArray(path)) return []
+  return path.map((point) => {
+    if (!Array.isArray(point) || point.length < 2) return null
+    const latitude = Number(point[0])
+    const longitude = Number(point[1])
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null
+    if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return null
+    return [latitude, longitude]
+  }).filter(Boolean)
+}
+
+function escapeHTML(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  })[character])
+}
+
+function locationPopup(location) {
+  const name = escapeHTML(location.name || 'Selected location')
+  const level = escapeHTML(location.level)
+  const code = escapeHTML(location.full_code || location.code)
+  return `<strong>${name}</strong>${level ? `<br><span>${level}</span>` : ''}${code ? `<br><code>${code}</code>` : ''}`
+}
+
+function renderMapLocation(item, detail, boundary, boundaryError) {
+  const location = { ...item, ...detail }
+  const path = normalizeLeafletPath(boundary?.leaflet_path)
+  const centroid = coordinatesFor(detail) || coordinatesFor(boundary)
+  const popup = locationPopup(location)
+  clearMapLayers()
+
+  if (path.length >= 3) {
+    const polygon = window.L.polygon(path, {
+      color: '#4f46e5',
+      fillColor: '#818cf8',
+      fillOpacity: 0.24,
+      weight: 2,
+    }).bindPopup(popup)
+    state.mapLayers.addLayer(polygon)
+    if (centroid) state.mapLayers.addLayer(window.L.marker(centroid).bindPopup(popup))
+    state.map.fitBounds(polygon.getBounds(), { padding: [24, 24] })
+    setMapStatus(`Boundary loaded for ${location.name || item.name || location.code}.`, 'success')
+    setMapMessage('')
+    return
+  }
+
+  if (centroid) {
+    state.mapLayers.addLayer(window.L.marker(centroid).bindPopup(popup))
+    state.map.setView(centroid, 12)
+    const boundaryMissing = !boundaryError || boundaryError.status === 404
+    setMapStatus(boundaryMissing ? 'Boundary unavailable; showing centroid.' : 'Boundary request failed; showing centroid.', 'warning')
+    setMapMessage('')
+    return
+  }
+
+  const message = boundaryError && boundaryError.status !== 404
+    ? `Boundary unavailable: ${boundaryError.message}`
+    : 'No boundary or coordinates available for this location.'
+  setMapStatus('Location cannot be displayed.', 'error')
+  setMapMessage(message, 'error')
+}
+
+function resetMap() {
+  state.mapSelectionId += 1
+  clearMapLayers()
+  setMapStatus('Select a location to view its map.')
+  setMapMessage('Select a location to view it on the map.')
+}
+
+async function selectLocation(item) {
+  const code = item.full_code || item.code
+  if (!code) return
+
+  const selectionId = ++state.mapSelectionId
+  const name = item.name || code
+  const map = ensureMap()
+  if (!map) return
+
+  clearMapLayers()
+  setMapStatus(`Loading ${name}…`, 'loading')
+  setMapMessage('Loading location…', 'loading')
+
+  try {
+    const detail = await request(`/api/locations/${encodeURIComponent(code)}`)
+    if (selectionId !== state.mapSelectionId) return
+    if (!detail || Array.isArray(detail) || typeof detail !== 'object') throw new Error('Location detail unavailable')
+
+    let boundary = null
+    let boundaryError = null
+    if (detail.has_boundary) {
+      setMapStatus(`Loading boundary for ${detail.name || name}…`, 'loading')
+      try {
+        boundary = await request(`/api/locations/${encodeURIComponent(code)}/boundary`)
+      } catch (error) {
+        boundaryError = error
+      }
+      if (selectionId !== state.mapSelectionId) return
+    }
+
+    renderMapLocation(item, detail, boundary, boundaryError)
+  } catch (error) {
+    if (selectionId !== state.mapSelectionId) return
+    clearMapLayers()
+    setMapStatus(`Unable to load ${name}.`, 'error')
+    setMapMessage(error.message || 'Location detail unavailable.', 'error')
+  }
 }
 
 function codeFormatParams() {
@@ -149,6 +318,7 @@ async function loadStats() {
 }
 
 async function refreshData() {
+  resetMap()
   await loadStats()
   resetSelectionSummary()
   await loadTree()
@@ -326,19 +496,23 @@ function createTreeNode(item) {
   row.append(chevron, code, name, inlineStats, badge)
   node.appendChild(row)
 
+  const selectRow = () => {
+    selectLocation(item)
+    if (!isLeaf) toggleNode(node, item)
+  }
+  row.addEventListener('click', selectRow)
+  row.addEventListener('keydown', (e) => {
+    if (!isActivationKey(e)) return
+    e.preventDefault()
+    selectRow()
+  })
+
   if (!isLeaf) {
     row.setAttribute('aria-expanded', 'false')
     const children = document.createElement('div')
     children.className = 'tree-children'
     children.setAttribute('role', 'group')
     node.appendChild(children)
-
-    row.addEventListener('click', () => toggleNode(node, item))
-    row.addEventListener('keydown', (e) => {
-      if (!isActivationKey(e)) return
-      e.preventDefault()
-      toggleNode(node, item)
-    })
   }
 
   return node
@@ -485,6 +659,7 @@ function renderSearchRows(tbody, items) {
 
 async function navigateToBrowse(item) {
   switchTab('browse')
+  selectLocation(item)
   // expand tree to the item
   const fc = item.full_code || item.code
   const parts = fc.split('.')
@@ -580,6 +755,7 @@ function switchTab(tab) {
     els.viewTitle.textContent = 'Search Locations'
     els.viewSubtitle.textContent = 'Search across all administrative levels.'
   }
+  if (tab === 'browse' && state.map) requestAnimationFrame(() => state.map.invalidateSize())
 }
 
 // ── Sidebar ──

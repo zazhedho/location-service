@@ -41,6 +41,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -161,7 +162,7 @@
           </section>
 
           <div class="content-grid">
-            <section class="panel">
+            <section class="panel locations-panel">
               <div class="panel-header">
                 <h2>Locations <span class="row-count" id="treeRowCount"></span></h2>
                 <label class="sr-only" for="treeFilter">Filter locations</label>
@@ -169,6 +170,19 @@
               </div>
               <div class="tree-wrap" id="treeWrap">
                 <div class="tree" id="treeRoot" role="tree" aria-label="Location hierarchy"></div>
+              </div>
+            </section>
+
+            <section class="panel map-panel" aria-labelledby="mapTitle">
+              <div class="panel-header map-panel-header">
+                <div>
+                  <h2 id="mapTitle">Location Map</h2>
+                  <span class="map-status" id="mapStatus" role="status">Select a location to view its map.</span>
+                </div>
+              </div>
+              <div class="map-canvas">
+                <div id="locationMap" class="location-map" aria-label="Selected location map"></div>
+                <div class="map-message" id="mapMessage" role="status" aria-live="polite">Select a location to view it on the map.</div>
               </div>
             </section>
           </div>
@@ -230,6 +244,7 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="./app.js"></script>
   </body>
 </html>
