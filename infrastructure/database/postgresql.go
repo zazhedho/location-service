@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -46,10 +47,21 @@ func Open() (*sql.DB, error) {
 
 func Migrate(db *sql.DB) error {
 	path := utils.Env("PATH_MIGRATE", "migrations/000001_init.sql")
-	query, err := os.ReadFile(path)
-	if err != nil {
-		return err
+	paths := []string{path}
+	if filepath.Base(path) == "000001_init.sql" {
+		boundaryMigration := filepath.Join(filepath.Dir(path), "000002_location_boundaries.sql")
+		if _, err := os.Stat(boundaryMigration); err == nil {
+			paths = append(paths, boundaryMigration)
+		}
 	}
-	_, err = db.Exec(string(query))
-	return err
+	for _, path := range paths {
+		query, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if _, err := db.Exec(string(query)); err != nil {
+			return fmt.Errorf("apply migration %s: %w", path, err)
+		}
+	}
+	return nil
 }

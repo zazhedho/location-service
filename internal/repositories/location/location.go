@@ -112,3 +112,69 @@ func (r *repository) Search(ctx context.Context, query string, limit int) ([]dom
 		ORDER BY level, code
 		LIMIT $2`, query, limit)
 }
+
+func (r *repository) GetDetail(ctx context.Context, code string) (domainlocation.Detail, error) {
+	var detail domainlocation.Detail
+	var level int
+	var lat, lng sql.NullFloat64
+	var hasBoundary bool
+	err := r.db.QueryRowContext(ctx, `
+		SELECT l.code, l.name, l.level, b.centroid_lat, b.centroid_lng, b.code IS NOT NULL
+		FROM raw_locations l
+		LEFT JOIN location_boundaries b ON b.code = l.code
+		WHERE l.code = $1`, code).Scan(
+		&detail.Code,
+		&detail.Name,
+		&level,
+		&lat,
+		&lng,
+		&hasBoundary,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return domainlocation.Detail{}, domainlocation.ErrNotFound
+		}
+		return domainlocation.Detail{}, err
+	}
+	detail.Level = levelName(level)
+	detail.HasBoundary = hasBoundary
+	if lat.Valid && lng.Valid {
+		detail.Centroid = &domainlocation.Centroid{Lat: lat.Float64, Lng: lng.Float64}
+	}
+	return detail, nil
+}
+
+func (r *repository) GetBoundary(ctx context.Context, code string) (domainlocation.Boundary, error) {
+	var boundary domainlocation.Boundary
+	var path []byte
+	err := r.db.QueryRowContext(ctx, `
+		SELECT code, centroid_lat, centroid_lng, leaflet_path
+		FROM location_boundaries
+		WHERE code = $1`, code).Scan(
+		&boundary.Code,
+		&boundary.Centroid.Lat,
+		&boundary.Centroid.Lng,
+		&path,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return domainlocation.Boundary{}, domainlocation.ErrBoundaryNotFound
+		}
+		return domainlocation.Boundary{}, err
+	}
+	boundary.LeafletPath = path
+	return boundary, nil
+}
+
+func levelName(level int) string {
+	switch level {
+	case 1:
+		return "province"
+	case 2:
+		return "regency"
+	case 3:
+		return "district"
+	default:
+		return "village"
+	}
+}

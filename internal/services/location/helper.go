@@ -13,6 +13,17 @@ func normalizeCodeFormat(value string) string {
 	return "full"
 }
 
+func normalizeCode(value string) (string, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return "", errors.New("code is required")
+	}
+	if !domainlocation.IsValidCode(value) {
+		return "", errors.New("code is invalid")
+	}
+	return value, nil
+}
+
 func resolveChildCode(parentCode, childCode, childName string) (string, error) {
 	childCode = strings.TrimSpace(childCode)
 	if childCode == "" {

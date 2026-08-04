@@ -1,0 +1,110 @@
+package location
+
+import (
+	"context"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	domainlocation "location-service/internal/domain/location"
+	locationservice "location-service/internal/services/location"
+)
+
+type handlerRepository struct{}
+
+func (handlerRepository) CountStats(context.Context, domainlocation.StatsScope) (domainlocation.Stats, error) {
+	return domainlocation.Stats{}, nil
+}
+func (handlerRepository) ListProvinces(context.Context) ([]domainlocation.Item, error) {
+	return nil, nil
+}
+func (handlerRepository) ListRegencies(context.Context, string, string) ([]domainlocation.Item, error) {
+	return nil, nil
+}
+func (handlerRepository) ListDistricts(context.Context, string, string) ([]domainlocation.Item, error) {
+	return nil, nil
+}
+func (handlerRepository) ListVillages(context.Context, string, string) ([]domainlocation.Item, error) {
+	return nil, nil
+}
+func (handlerRepository) Search(context.Context, string, int) ([]domainlocation.Item, error) {
+	return nil, nil
+}
+func (handlerRepository) GetDetail(context.Context, string) (domainlocation.Detail, error) {
+	return domainlocation.Detail{
+		Code:        "11.01",
+		Name:        "Kabupaten Aceh Selatan",
+		Level:       "regency",
+		Centroid:    &domainlocation.Centroid{Lat: 3.1, Lng: 97.4},
+		HasBoundary: true,
+	}, nil
+}
+func (handlerRepository) GetBoundary(_ context.Context, code string) (domainlocation.Boundary, error) {
+	if code == "11.02" {
+		return domainlocation.Boundary{}, domainlocation.ErrBoundaryNotFound
+	}
+	return domainlocation.Boundary{
+		Code:     code,
+		Centroid: domainlocation.Centroid{Lat: 3.1, Lng: 97.4},
+		LeafletPath: []byte(
+			`[[[1,2],[3,4],[1,2]]]`,
+		),
+	}, nil
+}
+
+func TestBoundaryResponseAndCacheControl(t *testing.T) {
+	handler := NewHandler(locationservice.NewService(handlerRepository{}))
+	request := httptest.NewRequest(http.MethodGet, "/api/locations/11.01/boundary", nil)
+	request.SetPathValue("code", "11.01")
+	recorder := httptest.NewRecorder()
+
+	handler.Boundary(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", recorder.Code)
+	}
+	if got := recorder.Header().Get("Cache-Control"); got != "public, max-age=86400" {
+		t.Fatalf("cache control = %q", got)
+	}
+	body := recorder.Body.String()
+	if !strings.Contains(body, `"leaflet_path":[[[1,2],[3,4],[1,2]]]`) {
+		t.Fatalf("response omitted leaflet path: %s", body)
+	}
+}
+
+func TestBoundaryNotFoundUsesShortCache(t *testing.T) {
+	handler := NewHandler(locationservice.NewService(handlerRepository{}))
+	request := httptest.NewRequest(http.MethodGet, "/api/locations/11.02/boundary", nil)
+	request.SetPathValue("code", "11.02")
+	recorder := httptest.NewRecorder()
+
+	handler.Boundary(recorder, request)
+
+	if recorder.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404", recorder.Code)
+	}
+	if got := recorder.Header().Get("Cache-Control"); got != "public, max-age=60" {
+		t.Fatalf("cache control = %q", got)
+	}
+	if !strings.Contains(recorder.Body.String(), `"status":false`) {
+		t.Fatal("response envelope missing failure status")
+	}
+}
+
+func TestDetailResponseIncludesCentroid(t *testing.T) {
+	handler := NewHandler(locationservice.NewService(handlerRepository{}))
+	request := httptest.NewRequest(http.MethodGet, "/api/locations/11.01", nil)
+	request.SetPathValue("code", "11.01")
+	recorder := httptest.NewRecorder()
+
+	handler.Detail(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", recorder.Code)
+	}
+	body := recorder.Body.String()
+	if !strings.Contains(body, `"centroid":{"lat":3.1,"lng":97.4}`) || !strings.Contains(body, `"has_boundary":true`) {
+		t.Fatalf("detail fields missing: %s", body)
+	}
+}

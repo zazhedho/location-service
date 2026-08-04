@@ -31,6 +31,8 @@ func New(db *sql.DB, redisClient *redis.Client) http.Handler {
 	mux.HandleFunc("GET /api/locations/districts", handler.Districts)
 	mux.HandleFunc("GET /api/locations/villages", handler.Villages)
 	mux.HandleFunc("GET /api/locations/search", handler.Search)
+	mux.HandleFunc("GET /api/locations/{code}/boundary", handler.Boundary)
+	mux.HandleFunc("GET /api/locations/{code}", handler.Detail)
 	return middlewares.CORS(utils.WithRequestID(mux))
 }
 

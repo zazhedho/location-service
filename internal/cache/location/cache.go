@@ -19,8 +19,10 @@ import (
 )
 
 const (
-	defaultTTL = 180 * 24 * time.Hour
-	prefix     = "location:"
+	defaultTTL          = 180 * 24 * time.Hour
+	boundaryNegativeTTL = time.Minute
+	prefix              = "location:"
+	boundaryMissing     = "__missing__"
 )
 
 func TTL() time.Duration {
@@ -67,6 +69,10 @@ func VillageKey(districtCode, codeFormat string) string {
 func SearchKey(query string, limit int) string {
 	sum := sha1.Sum([]byte(strings.ToLower(strings.TrimSpace(query))))
 	return fmt.Sprintf("%ssearch:%s:%d", prefix, hex.EncodeToString(sum[:]), limit)
+}
+
+func BoundaryKey(code string) string {
+	return fmt.Sprintf("%sboundary:%s", prefix, clean(code))
 }
 
 func Get(ctx context.Context, client *redis.Client, key string) ([]domainlocation.Item, bool) {
@@ -151,6 +157,63 @@ func SetStats(ctx context.Context, client *redis.Client, key string, stats domai
 	defer cancel()
 
 	if err := client.Set(ctx, key, payload, TTL()).Err(); err != nil {
+		log.Printf("location cache set failed; key=%s; err=%v", key, err)
+	}
+}
+
+func GetBoundary(ctx context.Context, client *redis.Client, key string) (domainlocation.Boundary, bool, bool) {
+	if client == nil {
+		return domainlocation.Boundary{}, false, false
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	raw, err := client.Get(ctx, key).Result()
+	if err != nil {
+		if !errors.Is(err, redis.Nil) {
+			log.Printf("location cache get failed; key=%s; err=%v", key, err)
+		}
+		return domainlocation.Boundary{}, false, false
+	}
+	if raw == boundaryMissing {
+		return domainlocation.Boundary{}, true, true
+	}
+
+	var boundary domainlocation.Boundary
+	if err := json.Unmarshal([]byte(raw), &boundary); err != nil {
+		log.Printf("location cache unmarshal failed; key=%s; err=%v", key, err)
+		return domainlocation.Boundary{}, false, false
+	}
+	return boundary, true, false
+}
+
+func SetBoundary(ctx context.Context, client *redis.Client, key string, boundary domainlocation.Boundary) {
+	if client == nil {
+		return
+	}
+
+	payload, err := json.Marshal(boundary)
+	if err != nil {
+		log.Printf("location cache marshal failed; key=%s; err=%v", key, err)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	if err := client.Set(ctx, key, payload, TTL()).Err(); err != nil {
+		log.Printf("location cache set failed; key=%s; err=%v", key, err)
+	}
+}
+
+func SetBoundaryMissing(ctx context.Context, client *redis.Client, key string) {
+	if client == nil {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	if err := client.Set(ctx, key, boundaryMissing, boundaryNegativeTTL).Err(); err != nil {
 		log.Printf("location cache set failed; key=%s; err=%v", key, err)
 	}
 }

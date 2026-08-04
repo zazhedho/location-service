@@ -2,6 +2,7 @@ package location
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"strconv"
 	"strings"
@@ -131,6 +132,40 @@ func (s *service) Search(ctx context.Context, query string, limit string) ([]dom
 	}
 	locationcache.Set(ctx, s.redis, key, items)
 	return items, nil
+}
+
+func (s *service) Detail(ctx context.Context, code string) (domainlocation.Detail, error) {
+	code, err := normalizeCode(code)
+	if err != nil {
+		return domainlocation.Detail{}, err
+	}
+	return s.repo.GetDetail(ctx, code)
+}
+
+func (s *service) Boundary(ctx context.Context, code string) (domainlocation.Boundary, error) {
+	code, err := normalizeCode(code)
+	if err != nil {
+		return domainlocation.Boundary{}, err
+	}
+
+	key := locationcache.BoundaryKey(code)
+	if boundary, ok, missing := locationcache.GetBoundary(ctx, s.redis, key); ok {
+		if missing {
+			return domainlocation.Boundary{}, domainlocation.ErrBoundaryNotFound
+		}
+		return boundary, nil
+	}
+
+	boundary, err := s.repo.GetBoundary(ctx, code)
+	if errors.Is(err, sql.ErrNoRows) || errors.Is(err, domainlocation.ErrNotFound) || errors.Is(err, domainlocation.ErrBoundaryNotFound) {
+		locationcache.SetBoundaryMissing(ctx, s.redis, key)
+		return domainlocation.Boundary{}, domainlocation.ErrBoundaryNotFound
+	}
+	if err != nil {
+		return domainlocation.Boundary{}, err
+	}
+	locationcache.SetBoundary(ctx, s.redis, key, boundary)
+	return boundary, nil
 }
 
 func (s *service) listVillagesByDistrict(ctx context.Context, districtCode, codeFormat string) ([]domainlocation.Item, error) {

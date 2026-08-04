@@ -2,9 +2,11 @@ package location
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 
+	domainlocation "location-service/internal/domain/location"
 	interfacelocation "location-service/internal/interfaces/location"
 	"location-service/pkg/messages"
 	"location-service/pkg/response"
@@ -54,9 +56,27 @@ func (h *Handler) Search(w http.ResponseWriter, r *http.Request) {
 	respond(w, r, items, err)
 }
 
+func (h *Handler) Detail(w http.ResponseWriter, r *http.Request) {
+	detail, err := h.service.Detail(r.Context(), r.PathValue("code"))
+	respond(w, r, detail, err)
+}
+
+func (h *Handler) Boundary(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	boundary, err := h.service.Boundary(r.Context(), r.PathValue("code"))
+	if errors.Is(err, domainlocation.ErrBoundaryNotFound) {
+		w.Header().Set("Cache-Control", "public, max-age=60")
+	}
+	respond(w, r, boundary, err)
+}
+
 func respond(w http.ResponseWriter, r *http.Request, data any, err error) {
 	logID := utils.LogID(r)
 	if err != nil {
+		if errors.Is(err, domainlocation.ErrNotFound) || errors.Is(err, domainlocation.ErrBoundaryNotFound) {
+			writeJSON(w, http.StatusNotFound, response.ErrorResponse(http.StatusNotFound, messages.MsgNotFound, logID, err.Error()))
+			return
+		}
 		if isClientError(err.Error()) {
 			writeJSON(w, http.StatusBadRequest, response.ErrorResponse(http.StatusBadRequest, http.StatusText(http.StatusBadRequest), logID, err.Error()))
 			return
@@ -75,6 +95,8 @@ func isClientError(message string) bool {
 		"district_code is required",
 		"q is required",
 		"limit must be a number between 1 and 500",
+		"code is required",
+		"code is invalid",
 		"province_code is required when regency_code is short",
 		"province_code is required when district_code is short":
 		return true

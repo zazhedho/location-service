@@ -29,12 +29,16 @@ func main() {
 		if err := importData(); err != nil {
 			log.Fatal(err)
 		}
+	case "import-boundaries":
+		if err := importBoundaries(); err != nil {
+			log.Fatal(err)
+		}
 	case "migrate":
 		if err := migrate(); err != nil {
 			log.Fatal(err)
 		}
 	default:
-		log.Fatalf("unknown command %q; use serve, import, or migrate", cmd)
+		log.Fatalf("unknown command %q; use serve, import, import-boundaries, or migrate", cmd)
 	}
 }
 
@@ -101,6 +105,57 @@ func importData() error {
 		return err
 	}
 	log.Printf("import done: raw=%d provinces=%d regencies=%d districts=%d villages=%d", stats.Raw, stats.Provinces, stats.Regencies, stats.Districts, stats.Villages)
+	return nil
+}
+
+type pathList []string
+
+func (p *pathList) String() string {
+	return strings.Join(*p, ",")
+}
+
+func (p *pathList) Set(value string) error {
+	if strings.TrimSpace(value) == "" {
+		return fmt.Errorf("boundary file path is required")
+	}
+	*p = append(*p, value)
+	return nil
+}
+
+func importBoundaries() error {
+	fs := flag.NewFlagSet("import-boundaries", flag.ExitOnError)
+	var files pathList
+	fs.Var(&files, "file", "gzip SQL boundary file; repeat for multiple files")
+	dir := fs.String("dir", "", "directory containing boundary gzip files")
+	if err := fs.Parse(commandArgs()); err != nil {
+		return err
+	}
+
+	paths := append([]string(nil), files...)
+	if strings.TrimSpace(*dir) != "" {
+		boundaryFiles, err := importer.BoundaryFiles(*dir)
+		if err != nil {
+			return err
+		}
+		paths = append(paths, boundaryFiles...)
+	}
+	if len(paths) == 0 {
+		return fmt.Errorf("provide -dir or at least one -file")
+	}
+
+	db, err := database.Open()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	if err := database.Migrate(db); err != nil {
+		return fmt.Errorf("migrate schema: %w", err)
+	}
+	stats, err := importer.ImportBoundaries(context.Background(), db, paths)
+	if err != nil {
+		return err
+	}
+	log.Printf("boundary import done: read=%d imported=%d skipped_unknown=%d", stats.Read, stats.Imported, stats.SkippedUnknown)
 	return nil
 }
 
