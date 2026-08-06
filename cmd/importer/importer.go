@@ -17,6 +17,8 @@ import (
 
 var tuplePattern = regexp.MustCompile(`\('((?:''|[^'])*)','((?:''|[^'])*)'\)`)
 
+const truncateLocationsSQL = `TRUNCATE location_boundaries, location_population, location_areas, villages, districts, regencies, provinces, raw_locations RESTART IDENTITY`
+
 func Import(ctx context.Context, db *sql.DB, path string, truncate bool) (domainlocation.ImportStats, error) {
 	if !truncate {
 		return domainlocation.ImportStats{}, errors.New("bulk import requires truncate=true")
@@ -82,7 +84,7 @@ func Import(ctx context.Context, db *sql.DB, path string, truncate bool) (domain
 	}
 	defer tx.Rollback()
 
-	if _, err := tx.ExecContext(ctx, `TRUNCATE villages, districts, regencies, provinces, raw_locations RESTART IDENTITY`); err != nil {
+	if _, err := tx.ExecContext(ctx, truncateLocationsSQL); err != nil {
 		return domainlocation.ImportStats{}, err
 	}
 	if err := copyRows(ctx, tx, "raw_locations", []string{"code", "name", "level"}, rawRows); err != nil {

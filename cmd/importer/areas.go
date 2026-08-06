@@ -35,16 +35,8 @@ type parsedArea struct {
 var (
 	areaInsertPattern   = regexp.MustCompile(`(?i)^\s*INSERT\s+INTO\s+wilayah_luas\b`)
 	areaValuesPattern   = regexp.MustCompile(`(?i)\bVALUES\b`)
-	areaCodeCorrections = map[string]string{
-		"11.1": "11.10",
-		"12.1": "12.10",
-		"12.2": "12.20",
-		"14.1": "14.10",
-		"31.0": "31",
-	}
 	areaNameCorrections = map[string]map[string]string{
 		"53.02": {"Kab Timor Tengah Selatan": "Kabupaten Timor Tengah Selatan"},
-		"96":    {"Papua Barat Oaya": "Papua Barat Daya"},
 	}
 )
 
@@ -274,9 +266,15 @@ func parseAreaValue(raw string) (float64, error) {
 
 func normalizeAreaCode(raw string) (string, bool, error) {
 	code := strings.TrimSpace(raw)
-	corrected, changed := areaCodeCorrections[code]
-	if changed {
-		code = corrected
+	changed := false
+	parts := strings.Split(code, ".")
+	if len(parts) == 2 && len(parts[0]) == 2 && len(parts[1]) == 1 && parts[1][0] >= '0' && parts[1][0] <= '9' {
+		if parts[1] == "0" {
+			code = parts[0]
+		} else {
+			code = parts[0] + "." + parts[1] + "0"
+		}
+		changed = true
 	}
 	if !domainlocation.IsValidCode(code) {
 		return "", false, fmt.Errorf("invalid area code %q", raw)

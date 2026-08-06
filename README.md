@@ -81,6 +81,7 @@ The frontend is a lightweight console for trying the API directly from the brows
 - Search API across all location levels.
 - Boundary/centroid API and an interactive Leaflet map.
 - Paginated island list and detail APIs.
+- Population and area statistics for provinces and regencies/cities.
 - PostgreSQL normalized tables for stable source-of-truth data.
 - Redis cache before database reads, with default TTL of six months.
 - One-time automatic seed on first startup when `raw_locations` is empty.
@@ -146,6 +147,8 @@ Normalized tables:
 | `regencies` | 514 |
 | `districts` | 7,285 |
 | `villages` | 83,762 |
+| `location_population` | 552 after statistics import |
+| `location_areas` | 552 after statistics import |
 
 ## Configuration
 
@@ -244,9 +247,11 @@ Imports a location data SQL file into `raw_locations`, then bulk-loads normalize
 ```bash
 go run . import-boundaries -dir ../wilayah-indonesia-api/init-db
 go run . import-islands -file ../wilayah-indonesia-api/init-db/02-data.sql
+go run . import-population -file ../wilayah-indonesia-api/init-db/02-data.sql
+go run . import-areas -file ../wilayah-indonesia-api/init-db/02-data.sql
 ```
 
-Imports boundary gzip files and island tuples from the cloned source project. Both imports run in a transaction and invalidate their Redis cache prefix after success.
+Imports boundary, island, population, and area data from the cloned source project. Imports run in a transaction and invalidate their Redis cache prefix after success.
 
 ```bash
 go run . serve
@@ -432,6 +437,17 @@ GET /api/islands/11.01.40001
 
 `page` defaults to `1`; `limit` defaults to `50` and is capped at `500`. Island status values are preserved from the source dataset (`BP`/`TBP`) without expanding their meaning because the cloned source does not document them.
 
+### Population and Area
+
+```text
+GET /api/locations/11/population
+GET /api/locations/11.01/population
+GET /api/locations/11/area
+GET /api/locations/11.01/area
+```
+
+Population responses contain `male`, `female`, and `total`; area responses contain `area_km2`. Both include `source`, `reference_date`, and `imported_at`. Statistics are available for provinces and regencies/cities after running the import commands.
+
 ## Code Format
 
 Default API responses use full administrative codes:
@@ -466,6 +482,8 @@ location:search:{query_hash}:{limit}
 location:boundary:{code}
 location:islands:list:{province_code}:{page}:{limit}
 location:islands:detail:{code}
+location:population:{code}
+location:area:{code}
 ```
 
 Default TTL:

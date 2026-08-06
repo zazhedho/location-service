@@ -9,7 +9,8 @@ Urutan implementasi:
 1. Boundary polygon dan centroid wilayah.
 2. Detail wilayah dan peta interaktif.
 3. Data pulau.
-4. Data luas, penduduk, dan logo setelah sumber datanya tervalidasi.
+4. Data penduduk dan luas dengan provenance serta tanggal referensi.
+5. Logo pada fase berikutnya setelah sumber aset dipastikan.
 
 ## 2. Sumber Data
 
@@ -20,9 +21,9 @@ Data kandidat berasal dari clone lokal `wilayah-indonesia-api`:
 | Wilayah administratif | `init-db/02-data.sql` | 91.599 | Tidak diimpor ulang; sudah ada di `data/wilayah.sql` |
 | Boundary dan centroid | `init-db/03-boundaries-part1.sql.gz` sampai `06-boundaries-part4.sql.gz` | 91.241 | Implementasi fase 1 |
 | Pulau | `init-db/02-data.sql` | 17.374 | Implementasi fase 3 |
-| Penduduk | `init-db/02-data.sql` | 553 | Tunda sampai metadata sumber tersedia |
-| Luas | `init-db/02-data.sql` | 552 | Tunda sampai data dibersihkan |
-| Logo | `cahyadsn/wilayah_logo` | Provinsi dan kabupaten/kota | Opsional |
+| Penduduk | `init-db/02-data.sql` | 553 | Implementasi fase 4; 552 wilayah diimpor, baris nasional dilewati |
+| Luas | `init-db/02-data.sql` | 552 | Implementasi fase 4 setelah normalisasi kode sumber |
+| Logo | `cahyadsn/wilayah_logo` | Provinsi dan kabupaten/kota | Ditunda ke fase 5 |
 
 Hasil audit boundary terhadap `data/wilayah.sql`:
 
@@ -265,33 +266,42 @@ Aturan:
 
 Audit parser terhadap 17.374 tuple sumber menemukan sejumlah catatan yang bergeser ke kolom `status`/`area` dan dapat dipulihkan secara deterministik, satu baris `91.19.40014` yang rusak dan dilewati, serta 80 kemunculan kode duplikat. Dengan aturan first-write-wins, hasil bersihnya 17.293 pulau unik. Importer melaporkan jumlah `read`, `imported`, `skipped`, dan `duplicate_codes`; data sumber tidak disalin ke repository ini.
 
-## 7. Fase 4: Luas, Penduduk, dan Logo
+## 7. Fase 4: Luas dan Penduduk
 
-Fase ini belum boleh dimulai sebelum provenance dan tanggal referensi data tersedia.
+Fase ini sudah diimplementasikan untuk provinsi dan kabupaten/kota.
 
-Masalah yang sudah ditemukan:
+### 7.1 Penduduk
 
-- Data penduduk hanya mencakup nasional, provinsi, dan kabupaten/kota.
-- Data luas hanya mencakup provinsi dan kabupaten/kota.
-- Terdapat kode luas `11.1` yang tidak cocok dengan kode resmi `11.10`.
-- Terdapat nama `Papua Barat Oaya` yang perlu dikoreksi menjadi sumber resmi yang valid.
-- File boundary memuat pemberitahuan lisensi MIT dari `cahya dsn`; provenance dan tanggal referensi data statistik tetap belum cukup jelas untuk dirilis.
-
-Jika dilanjutkan, setiap record statistik harus menyimpan:
+- Sumber: Ditjen Dukcapil Kemendagri, Semester II Desember 2024.
+- Tanggal referensi: `2024-12-31`.
+- Audit sumber: 553 baris, terdiri dari 1 nasional, 38 provinsi, dan 514 kabupaten/kota.
+- Importer melewati kode nasional `0` dan memasukkan 552 baris yang cocok dengan `raw_locations`.
 
 ```text
-source
-reference_date
-imported_at
+go run . import-population -file ../wilayah-indonesia-api/init-db/02-data.sql
+GET /api/locations/{code}/population
 ```
 
-Logo tidak membutuhkan service MinIO baru. Pilihan awal:
+Data disimpan di `location_population`: `male`, `female`, `total`, `source`, `reference_date`, dan `imported_at`. Importer memvalidasi bahwa `male + female = total`.
 
-1. Simpan sebagai static assets jika ukuran repository masih wajar.
-2. Gunakan object storage/CDN yang sudah tersedia.
-3. Pin commit sumber dan simpan checksum manifest.
+### 7.2 Luas
 
-Jangan mengunduh logo otomatis dari branch `main` pada setiap startup.
+- Sumber: Badan Informasi Geospasial (BIG), surat `B-16.10/DIGD-BIG/IGD.04.04/12/2024` tanggal 16 Desember 2024.
+- Tanggal referensi: `2024-12-16`.
+- Audit sumber: 552 baris, terdiri dari 38 provinsi dan 514 kabupaten/kota.
+- Lima kode singkat sumber dinormalisasi ke kode administratif aktif; satu variasi nama dinormalisasi saat parsing.
+- Nama yang dikembalikan API tetap berasal dari `raw_locations` sebagai data kanonis.
+
+```text
+go run . import-areas -file ../wilayah-indonesia-api/init-db/02-data.sql
+GET /api/locations/{code}/area
+```
+
+Data disimpan di `location_areas`: `area_km2`, `source`, `reference_date`, dan `imported_at`. Nilai luas harus non-negatif dan finite.
+
+### 7.3 Fase 5: Logo
+
+Logo ditunda. Jika dilanjutkan, pin commit sumber dan simpan checksum manifest. Gunakan static assets atau object storage/CDN yang sudah tersedia; jangan menambah MinIO atau mengunduh branch `main` pada setiap startup.
 
 ## 8. Cache dan Pembaruan Data
 
@@ -309,6 +319,8 @@ Prefix baru:
 ```text
 location:boundary:
 location:islands:
+location:population:
+location:area:
 ```
 
 ## 9. Pengujian
@@ -338,6 +350,14 @@ Minimum check per fase:
 - Missing boundary ditangani.
 - Popup tidak menerima HTML mentah dari response API.
 
+### Statistik penduduk dan luas
+
+- Parser diaudit terhadap `02-data.sql` asli.
+- Penduduk menolak total yang tidak sama dengan jumlah laki-laki dan perempuan.
+- Luas menormalisasi lima kode singkat dan menolak nilai tidak valid.
+- Kode valid menghasilkan `200`; data tidak tersedia menghasilkan `404`; kode tidak valid menghasilkan `400`.
+- Response sukses menyertakan provenance dan tanggal referensi.
+
 ### Regression
 
 ```bash
@@ -352,11 +372,11 @@ Endpoint provinces, regencies, districts, villages, search, stats, dan health ha
 Urutan deployment:
 
 1. Backup PostgreSQL.
-2. Jalankan migration boundary.
-3. Jalankan importer boundary pada staging.
+2. Jalankan seluruh migration baru.
+3. Jalankan importer boundary, pulau, penduduk, dan luas pada staging.
 4. Cocokkan jumlah hasil import dengan laporan audit.
-5. Deploy endpoint boundary.
-6. Uji response dan compression.
+5. Deploy endpoint baru.
+6. Uji response, cache, provenance, dan compression boundary.
 7. Deploy frontend map.
 8. Pantau latency, ukuran response, error rate, dan penggunaan Redis.
 9. Ulangi proses di production.
@@ -369,7 +389,7 @@ Rollback:
 
 ## 11. Definition of Done
 
-Fase boundary dan peta dianggap selesai ketika:
+Fase geospasial dan statistik dianggap selesai ketika:
 
 - Migration dan importer dapat dijalankan ulang secara aman.
 - 91.216 boundary yang cocok berhasil diimpor.
@@ -377,6 +397,8 @@ Fase boundary dan peta dianggap selesai ketika:
 - API boundary tervalidasi, tercache, dan terdokumentasi.
 - Frontend menampilkan polygon dan centroid berdasarkan pilihan pengguna.
 - Wilayah tanpa boundary tetap dapat digunakan.
+- 552 record penduduk dan 552 record luas dapat diimpor secara idempoten.
+- API penduduk dan luas tervalidasi, tercache, dan menyertakan provenance.
 - Test dan build berhasil.
 - Sumber data, keterbatasan format koordinat, dan tanggal import didokumentasikan.
 

@@ -16,8 +16,7 @@ VALUES ('96','Papua Barat Oaya','623186');
 INSERT INTO wilayah_luas(kode,nama,luas)
 VALUES
 ('11.1','Kabupaten Aceh Singkil',1851.615),
-('53.02','Kab Timor Tengah Selatan',3931.747),
-('96','Papua Barat Oaya',39103.058);
+('53.02','Kab Timor Tengah Selatan',3931.747);
 `
 
 	var rows []domainarea.Area
@@ -28,20 +27,17 @@ VALUES
 	if err != nil {
 		t.Fatal(err)
 	}
-	if stats.RowsRead != 3 || len(rows) != 3 {
-		t.Fatalf("rows = %d, emitted = %d; want 3", stats.RowsRead, len(rows))
+	if stats.RowsRead != 2 || len(rows) != 2 {
+		t.Fatalf("rows = %d, emitted = %d; want 2", stats.RowsRead, len(rows))
 	}
-	if stats.CodeCorrections != 1 || stats.NameCorrections != 2 {
-		t.Fatalf("corrections = code:%d name:%d; want code:1 name:2", stats.CodeCorrections, stats.NameCorrections)
+	if stats.CodeCorrections != 1 || stats.NameCorrections != 1 {
+		t.Fatalf("corrections = code:%d name:%d; want code:1 name:1", stats.CodeCorrections, stats.NameCorrections)
 	}
 	if rows[0].Code != "11.10" || rows[0].AreaKM2 != 1851.615 {
 		t.Fatalf("first area = %+v", rows[0])
 	}
 	if rows[1].Name != "Kabupaten Timor Tengah Selatan" {
 		t.Fatalf("abbreviated name was not corrected: %+v", rows[1])
-	}
-	if rows[2].Name != "Papua Barat Daya" {
-		t.Fatalf("known source typo was not corrected: %+v", rows[2])
 	}
 }
 
@@ -59,7 +55,6 @@ func TestParseAreaTuplesRejectsInvalidArea(t *testing.T) {
 func TestLocalAreaSourceAudit(t *testing.T) {
 	paths := []string{
 		os.Getenv("WILAYAH_SOURCE_FILE"),
-		"/Users/zaqiakhana/Code/Project/wilayah-indonesia-api/init-db/02-data.sql",
 		filepath.Join("..", "..", "..", "wilayah-indonesia-api", "init-db", "02-data.sql"),
 	}
 	var path string

@@ -24,6 +24,13 @@ func NewHandler(service interfacepopulation.Service) *Handler {
 
 func (h *Handler) Get(w http.ResponseWriter, r *http.Request) {
 	item, err := h.service.GetPopulation(r.Context(), r.PathValue("code"))
+	if err == nil {
+		w.Header().Set("Cache-Control", "public, max-age=86400, stale-while-revalidate=86400")
+	} else if errors.Is(err, domainpopulation.ErrNotFound) {
+		w.Header().Set("Cache-Control", "public, max-age=60")
+	} else {
+		w.Header().Set("Cache-Control", "no-store")
+	}
 	respond(w, r, item, err)
 }
 

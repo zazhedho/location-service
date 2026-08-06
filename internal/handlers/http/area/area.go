@@ -23,10 +23,12 @@ func NewHandler(service interfacearea.Service) *Handler {
 
 func (h *Handler) Area(w http.ResponseWriter, r *http.Request) {
 	data, err := h.service.Area(r.Context(), r.PathValue("code"))
-	if errors.Is(err, domainarea.ErrNotFound) {
+	if err == nil {
+		w.Header().Set("Cache-Control", "public, max-age=86400, stale-while-revalidate=86400")
+	} else if errors.Is(err, domainarea.ErrNotFound) {
 		w.Header().Set("Cache-Control", "public, max-age=60")
 	} else {
-		w.Header().Set("Cache-Control", "public, max-age=86400, stale-while-revalidate=86400")
+		w.Header().Set("Cache-Control", "no-store")
 	}
 	respond(w, r, data, err)
 }

@@ -10,13 +10,26 @@ import (
 )
 
 func TestPopulationSourceAudit(t *testing.T) {
-	path := os.Getenv("WILAYAH_DATA_SQL")
+	paths := []string{
+		os.Getenv("WILAYAH_DATA_SQL"),
+		filepath.Join("..", "..", "..", "wilayah-indonesia-api", "init-db", "02-data.sql"),
+	}
+	var path string
+	for _, candidate := range paths {
+		if candidate == "" {
+			continue
+		}
+		if _, err := os.Stat(candidate); err == nil {
+			path = candidate
+			break
+		}
+	}
 	if path == "" {
-		path = "/Users/zaqiakhana/Code/Project/wilayah-indonesia-api/init-db/02-data.sql"
+		t.Skip("wilayah-indonesia-api source not available")
 	}
 	file, err := os.Open(path)
 	if err != nil {
-		t.Skip(err)
+		t.Fatal(err)
 	}
 	defer file.Close()
 

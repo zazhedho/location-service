@@ -38,12 +38,20 @@ func main() {
 		if err := importIslands(); err != nil {
 			log.Fatal(err)
 		}
+	case "import-population":
+		if err := importPopulation(); err != nil {
+			log.Fatal(err)
+		}
+	case "import-areas":
+		if err := importAreas(); err != nil {
+			log.Fatal(err)
+		}
 	case "migrate":
 		if err := migrate(); err != nil {
 			log.Fatal(err)
 		}
 	default:
-		log.Fatalf("unknown command %q; use serve, import, import-boundaries, import-islands, or migrate", cmd)
+		log.Fatalf("unknown command %q; use serve, import, import-boundaries, import-islands, import-population, import-areas, or migrate", cmd)
 	}
 }
 
@@ -109,6 +117,7 @@ func importData() error {
 	if err != nil {
 		return err
 	}
+	invalidateCache("location:*")
 	log.Printf("import done: raw=%d provinces=%d regencies=%d districts=%d villages=%d", stats.Raw, stats.Provinces, stats.Regencies, stats.Districts, stats.Villages)
 	return nil
 }
@@ -186,6 +195,54 @@ func importIslands() error {
 	}
 	invalidateCache("location:islands:*")
 	log.Printf("island import done: read=%d imported=%d skipped=%d duplicate_codes=%d", stats.RowsRead, stats.RowsImported, stats.RowsSkipped, stats.DuplicateCodes)
+	return nil
+}
+
+func importPopulation() error {
+	fs := flag.NewFlagSet("import-population", flag.ExitOnError)
+	path := fs.String("file", "../wilayah-indonesia-api/init-db/02-data.sql", "path to SQL containing wilayah_penduduk")
+	if err := fs.Parse(commandArgs()); err != nil {
+		return err
+	}
+
+	db, err := database.Open()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	if err := database.Migrate(db); err != nil {
+		return fmt.Errorf("migrate schema: %w", err)
+	}
+	stats, err := importer.ImportPopulation(context.Background(), db, *path)
+	if err != nil {
+		return err
+	}
+	invalidateCache("location:population:*")
+	log.Printf("population import done: read=%d imported=%d skipped=%d national=%d unknown=%d", stats.RowsRead, stats.RowsImported, stats.RowsSkipped, stats.NationalRows, stats.UnknownCodes)
+	return nil
+}
+
+func importAreas() error {
+	fs := flag.NewFlagSet("import-areas", flag.ExitOnError)
+	path := fs.String("file", "../wilayah-indonesia-api/init-db/02-data.sql", "path to SQL containing wilayah_luas")
+	if err := fs.Parse(commandArgs()); err != nil {
+		return err
+	}
+
+	db, err := database.Open()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	if err := database.Migrate(db); err != nil {
+		return fmt.Errorf("migrate schema: %w", err)
+	}
+	stats, err := importer.ImportAreas(context.Background(), db, *path)
+	if err != nil {
+		return err
+	}
+	invalidateCache("location:area:*")
+	log.Printf("area import done: read=%d imported=%d unknown=%d code_corrections=%d name_corrections=%d", stats.RowsRead, stats.RowsImported, stats.RowsSkippedUnknown, stats.CodeCorrections, stats.NameCorrections)
 	return nil
 }
 

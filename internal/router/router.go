@@ -9,12 +9,18 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
+	areahandler "location-service/internal/handlers/http/area"
 	islandhandler "location-service/internal/handlers/http/island"
 	locationhandler "location-service/internal/handlers/http/location"
+	populationhandler "location-service/internal/handlers/http/population"
+	arearepo "location-service/internal/repositories/area"
 	islandrepo "location-service/internal/repositories/island"
 	locationrepo "location-service/internal/repositories/location"
+	populationrepo "location-service/internal/repositories/population"
+	areaservice "location-service/internal/services/area"
 	islandservice "location-service/internal/services/island"
 	locationservice "location-service/internal/services/location"
+	populationservice "location-service/internal/services/population"
 	"location-service/middlewares"
 	"location-service/pkg/messages"
 	"location-service/pkg/response"
@@ -26,6 +32,8 @@ func New(db *sql.DB, redisClient *redis.Client) http.Handler {
 	service := locationservice.NewService(repo, redisClient)
 	handler := locationhandler.NewHandler(service)
 	islandHandler := islandhandler.NewHandler(islandservice.NewService(islandrepo.NewRepository(db), redisClient))
+	populationHandler := populationhandler.NewHandler(populationservice.NewService(populationrepo.NewRepository(db), redisClient))
+	areaHandler := areahandler.NewHandler(areaservice.NewService(arearepo.NewRepository(db), redisClient))
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", health(db))
@@ -36,6 +44,8 @@ func New(db *sql.DB, redisClient *redis.Client) http.Handler {
 	mux.HandleFunc("GET /api/locations/villages", handler.Villages)
 	mux.HandleFunc("GET /api/locations/search", handler.Search)
 	mux.HandleFunc("GET /api/locations/{code}/boundary", handler.Boundary)
+	mux.HandleFunc("GET /api/locations/{code}/population", populationHandler.Get)
+	mux.HandleFunc("GET /api/locations/{code}/area", areaHandler.Area)
 	mux.HandleFunc("GET /api/locations/{code}", handler.Detail)
 	mux.HandleFunc("GET /api/islands", islandHandler.List)
 	mux.HandleFunc("GET /api/islands/{code}", islandHandler.Detail)
