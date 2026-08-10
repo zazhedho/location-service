@@ -1,22 +1,22 @@
 <!doctype html>
-<html lang="en">
+<html lang="id">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Location Service Docs - API Wilayah Indonesia</title>
-    <meta name="description" content="Simple documentation for Location Service, an API for Indonesian provinces, regencies, districts, and villages with endpoint examples and implementation snippets." />
+    <meta name="description" content="Documentation for Location Service: Indonesian administrative locations, search, boundaries, islands, population, and area APIs." />
     <meta name="robots" content="index, follow" />
-    <meta name="theme-color" content="#4f46e5" />
+    <meta name="theme-color" content="#d97706" />
     <link rel="canonical" href="https://location-service-do.vercel.app/docs" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta property="og:type" content="article" />
     <meta property="og:url" content="https://location-service-do.vercel.app/docs" />
     <meta property="og:title" content="Location Service Docs - API Wilayah Indonesia" />
-    <meta property="og:description" content="Simple guide for using Indonesian province, city, district, and village data in your app." />
+    <meta property="og:description" content="Guide for using Indonesian location, boundary, island, population, and area APIs." />
     <meta property="og:image" content="https://location-service-do.vercel.app/og-image.svg" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Location Service Docs - API Wilayah Indonesia" />
-    <meta name="twitter:description" content="Endpoint guide and implementation examples for Indonesian location data." />
+    <meta name="twitter:description" content="Endpoint guide and implementation examples for Indonesian location data and metadata." />
     <meta name="twitter:image" content="https://location-service-do.vercel.app/og-image.svg" />
     <script type="application/ld+json">
       {
@@ -38,100 +38,219 @@
   </head>
   <body>
     <header class="site-header">
-      <a class="brand" href="/" aria-label="Back to Location Service app">
+      <a class="brand" href="/" aria-label="Kembali ke aplikasi Location Service" data-i18n-aria="brandAria">
         <span class="brand-mark">LS</span>
         <span>
           <strong>Location Service</strong>
-          <small>API Wilayah Indonesia</small>
+          <small data-i18n="brandSubtitle">API Wilayah Indonesia</small>
         </span>
       </a>
-      <nav class="top-nav" aria-label="Main navigation">
-        <a href="/">Try API</a>
-        <a href="#endpoints">Endpoints</a>
-        <a href="#examples">Examples</a>
+      <nav class="top-nav" aria-label="Navigasi utama" data-i18n-aria="navAria">
+        <a href="/" data-i18n="navTry">Coba API</a>
+        <a href="#endpoints" data-i18n="navEndpoints">Endpoint</a>
+        <a href="#examples" data-i18n="navExamples">Contoh</a>
       </nav>
+      <div class="language-switcher" role="group" aria-label="Bahasa" data-i18n-aria="languageAria">
+        <button type="button" class="language-choice active" data-doc-language="id" aria-pressed="true">ID</button>
+        <button type="button" class="language-choice" data-doc-language="en" aria-pressed="false">EN</button>
+      </div>
     </header>
 
     <main>
       <section class="hero">
-        <p class="eyebrow">Documentation</p>
-        <h1>API wilayah Indonesia for address forms and location search.</h1>
-        <p class="lead">Use this API to load provinces, regencies/cities, districts, and villages in your application. Start from provinces, then request the next level using the selected parent code.</p>
+        <p class="eyebrow" data-i18n="heroEyebrow">Dokumentasi</p>
+        <h1 data-i18n="heroTitle">API wilayah Indonesia untuk formulir alamat dan pencarian lokasi.</h1>
+        <p class="lead" data-i18n="heroLead">Gunakan API ini untuk menampilkan provinsi, kabupaten/kota, kecamatan, dan kelurahan/desa secara berjenjang (cascading).</p>
         <div class="base-url">
-          <span>Base URL</span>
+          <span data-i18n="baseUrl">Base URL</span>
           <code>https://location-service-do.vercel.app</code>
         </div>
       </section>
 
+      <section class="section hierarchy-section" id="hierarchy">
+        <h2 data-i18n="hierarchyTitle">Struktur Data Wilayah</h2>
+        <p class="section-copy" data-i18n-html="hierarchyCopy">Data wilayah disusun secara bertingkat. Anda memerlukan <strong>kode area sebelumnya</strong> untuk mencari area di bawahnya.</p>
+        <div class="hierarchy-diagram">
+          <div class="h-node">
+            <div class="h-icon">🗺️</div>
+            <div class="h-text"><strong data-i18n="province">Provinsi</strong><small data-i18n="prefix">Awalan</small></div>
+          </div>
+          <div class="h-arrow">➔</div>
+          <div class="h-node">
+            <div class="h-icon">🏙️</div>
+            <div class="h-text"><strong data-i18n="regencyCity">Kab/Kota</strong><small data-i18n="needsProvinceCode">Butuh kode Provinsi</small></div>
+          </div>
+          <div class="h-arrow">➔</div>
+          <div class="h-node">
+            <div class="h-icon">🏘️</div>
+            <div class="h-text"><strong data-i18n="district">Kecamatan</strong><small data-i18n="needsRegencyCode">Butuh kode Kab/Kota</small></div>
+          </div>
+          <div class="h-arrow">➔</div>
+          <div class="h-node">
+            <div class="h-icon">🏡</div>
+            <div class="h-text"><strong data-i18n="village">Desa/Kelurahan</strong><small data-i18n="needsDistrictCode">Butuh kode Kecamatan</small></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section demo-section" id="interactive-demo">
+        <h2 data-i18n="demoTitle">Coba Langsung</h2>
+        <p class="section-copy" data-i18n="demoCopy">Simulasikan form alamat dengan API ini. Pilih tiap tingkat wilayah untuk melihat request berjenjang secara otomatis.</p>
+        <div class="demo-card">
+          <div class="demo-form">
+            <div class="form-group">
+              <label for="demo-province" data-i18n="demoProvinceLabel">1. Pilih Provinsi</label>
+              <select id="demo-province" class="demo-select">
+                <option value="">Memuat data provinsi...</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="demo-regency" data-i18n="demoRegencyLabel">2. Pilih Kabupaten / Kota</label>
+              <select id="demo-regency" class="demo-select" disabled>
+                <option value="">Pilih provinsi terlebih dahulu</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="demo-district" data-i18n="demoDistrictLabel">3. Pilih Kecamatan</label>
+              <select id="demo-district" class="demo-select" disabled>
+                <option value="">Pilih kabupaten/kota terlebih dahulu</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="demo-village" data-i18n="demoVillageLabel">4. Pilih Desa / Kelurahan</label>
+              <select id="demo-village" class="demo-select" disabled>
+                <option value="">Pilih kecamatan terlebih dahulu</option>
+              </select>
+            </div>
+          </div>
+          <div class="demo-code-preview">
+            <span class="preview-label" id="demo-endpoint-url">Menunggu aksi...</span>
+            <pre><code id="demo-response">// Hasil respons API (JSON) akan tampil di sini</code></pre>
+          </div>
+        </div>
+      </section>
+
       <section class="section" id="quick-start">
-        <h2>Start Here</h2>
+        <h2 data-i18n="quickStartTitle">Mulai di Sini</h2>
         <div class="steps">
           <article>
             <span>1</span>
             <div>
-              <h3>Load provinces</h3>
-              <p>Use this on page load for your first dropdown.</p>
+              <h3 data-i18n="stepLoadProvincesTitle">Muat provinsi</h3>
+              <p data-i18n="stepLoadProvincesCopy">Gunakan saat halaman dimuat untuk mengisi dropdown pertama.</p>
               <pre><code>GET /api/locations/provinces</code></pre>
             </div>
           </article>
           <article>
             <span>2</span>
             <div>
-              <h3>Load child areas</h3>
-              <p>When user selects a province, use its code to load regencies/cities. Repeat for districts and villages.</p>
+              <h3 data-i18n="stepLoadChildrenTitle">Muat wilayah turunan</h3>
+              <p data-i18n="stepLoadChildrenCopy">Saat pengguna memilih provinsi, gunakan kodenya untuk memuat kabupaten/kota, lalu ulangi untuk kecamatan dan desa.</p>
               <pre><code>GET /api/locations/regencies?province_code=11</code></pre>
             </div>
           </article>
           <article>
             <span>3</span>
             <div>
-              <h3>Save stable values</h3>
-              <p>Store <code>full_code</code> and <code>name</code> in your system when you need reliable address references.</p>
+              <h3 data-i18n="stepInspectTitle">Periksa lokasi</h3>
+              <p data-i18n="stepInspectCopy">Gunakan endpoint detail untuk koordinat, lalu minta boundary saat ingin menggambarkannya di peta.</p>
+              <pre><code>GET /api/locations/{code}
+GET /api/locations/{code}/boundary</code></pre>
+            </div>
+          </article>
+          <article>
+            <span>4</span>
+            <div>
+              <h3 data-i18n="stepSaveTitle">Simpan nilai stabil</h3>
+              <p data-i18n-html="stepSaveCopy">Simpan <code>full_code</code> dan <code>name</code> di sistem Anda untuk referensi alamat yang konsisten.</p>
             </div>
           </article>
         </div>
       </section>
 
       <section class="section" id="endpoints">
-        <h2>Endpoints</h2>
-        <p class="section-copy">All endpoints return JSON. Add <code>code_format=short</code> when you only need child-level codes.</p>
-        <p class="note">Replace placeholders like <code>{province_code}</code> with values returned from the previous endpoint.</p>
+        <h2 data-i18n="endpointsTitle">Endpoint</h2>
+        <p class="section-copy" data-i18n-html="endpointsCopy">Semua endpoint mengembalikan JSON. Tambahkan <code>code_format=short</code> jika hanya memerlukan kode level turunan.</p>
+        <p class="note" data-i18n-html="endpointsNote">Ganti placeholder seperti <code>{province_code}</code> dengan nilai dari endpoint sebelumnya.</p>
         <div class="endpoint-list">
           <article>
-            <strong>Health check</strong>
+            <strong data-i18n="endpointHealth">Health check</strong>
             <code>GET /healthz</code>
+            <button type="button" class="copy-curl" data-curl-path="/healthz">Salin cURL</button>
           </article>
           <article>
-            <strong>Total and scoped counts</strong>
+            <strong data-i18n="endpointStats">Total dan hitungan berdasarkan wilayah</strong>
             <code>GET /api/locations/stats</code>
-            <small>Optional: <code>province_code={province_code}</code>, <code>regency_code={regency_code}</code>, <code>district_code={district_code}</code></small>
+            <small data-i18n-html="endpointStatsNote">Opsional: <code>province_code={province_code}</code>, <code>regency_code={regency_code}</code>, <code>district_code={district_code}</code></small>
+            <button type="button" class="copy-curl" data-curl-path="/api/locations/stats?province_code=11">Salin cURL</button>
           </article>
           <article>
-            <strong>Provinces</strong>
+            <strong data-i18n="endpointProvinces">Provinsi</strong>
             <code>GET /api/locations/provinces</code>
+            <button type="button" class="copy-curl" data-curl-path="/api/locations/provinces">Salin cURL</button>
           </article>
           <article>
-            <strong>Regencies / cities</strong>
+            <strong data-i18n="endpointRegencies">Kabupaten / kota</strong>
             <code>GET /api/locations/regencies?province_code={province_code}</code>
+            <button type="button" class="copy-curl" data-curl-path="/api/locations/regencies?province_code=11">Salin cURL</button>
           </article>
           <article>
-            <strong>Districts</strong>
+            <strong data-i18n="endpointDistricts">Kecamatan</strong>
             <code>GET /api/locations/districts?regency_code={regency_code}</code>
+            <button type="button" class="copy-curl" data-curl-path="/api/locations/districts?regency_code=11.01">Salin cURL</button>
           </article>
           <article>
-            <strong>Villages</strong>
+            <strong data-i18n="endpointVillages">Desa / kelurahan</strong>
             <code>GET /api/locations/villages?district_code={district_code}</code>
+            <button type="button" class="copy-curl" data-curl-path="/api/locations/villages?district_code=11.01.01">Salin cURL</button>
           </article>
           <article>
-            <strong>Search by name</strong>
+            <strong data-i18n="endpointSearch">Cari berdasarkan nama</strong>
             <code>GET /api/locations/search?q={query}&amp;limit={limit}</code>
+            <button type="button" class="copy-curl" data-curl-path="/api/locations/search?q=aceh&amp;limit=10">Salin cURL</button>
+          </article>
+          <article>
+            <strong data-i18n="endpointDetail">Detail lokasi</strong>
+            <code>GET /api/locations/{code}</code>
+            <small data-i18n-html="endpointDetailNote">Mengembalikan hierarki, koordinat jika tersedia, dan <code>has_boundary</code>.</small>
+            <button type="button" class="copy-curl" data-curl-path="/api/locations/11.01.01.2001">Salin cURL</button>
+          </article>
+          <article>
+            <strong data-i18n="endpointBoundary">Boundary lokasi</strong>
+            <code>GET /api/locations/{code}/boundary</code>
+            <small data-i18n-html="endpointBoundaryNote">Mengembalikan <code>leaflet_path</code> dalam urutan Leaflet <code>[latitude, longitude]</code>. Boundary yang tidak tersedia mengembalikan <code>404</code>.</small>
+            <button type="button" class="copy-curl" data-curl-path="/api/locations/11.01.01.2001/boundary">Salin cURL</button>
+          </article>
+          <article>
+            <strong data-i18n="endpointIslands">Daftar pulau</strong>
+            <code>GET /api/islands?province_code={province_code}&amp;page=1&amp;limit=50</code>
+            <small data-i18n-html="endpointIslandsNote"><code>province_code</code> bersifat opsional. Pagination default halaman <code>1</code>, limit <code>50</code>, maksimum <code>500</code>.</small>
+            <button type="button" class="copy-curl" data-curl-path="/api/islands?province_code=11&amp;page=1&amp;limit=50">Salin cURL</button>
+          </article>
+          <article>
+            <strong data-i18n="endpointIslandDetail">Detail pulau</strong>
+            <code>GET /api/islands/{code}</code>
+            <small data-i18n-html="endpointIslandDetailNote">Gunakan kode pulau seperti <code>11.01.40001</code>.</small>
+            <button type="button" class="copy-curl" data-curl-path="/api/islands/11.01.40001">Salin cURL</button>
+          </article>
+          <article>
+            <strong data-i18n="endpointPopulation">Penduduk</strong>
+            <code>GET /api/locations/{code}/population</code>
+            <small data-i18n-html="endpointPopulationNote">Mengembalikan <code>male</code>, <code>female</code>, <code>total</code>, sumber, tanggal referensi, dan waktu import.</small>
+            <button type="button" class="copy-curl" data-curl-path="/api/locations/11.01.01.2001/population">Salin cURL</button>
+          </article>
+          <article>
+            <strong data-i18n="endpointArea">Luas wilayah</strong>
+            <code>GET /api/locations/{code}/area</code>
+            <small data-i18n-html="endpointAreaNote">Mengembalikan <code>area_km2</code>, sumber, tanggal referensi, dan waktu import.</small>
+            <button type="button" class="copy-curl" data-curl-path="/api/locations/11.01.01.2001/area">Salin cURL</button>
           </article>
         </div>
       </section>
 
       <section class="section">
-        <h2>Response Format</h2>
-        <p class="section-copy">Successful responses use the same envelope. Data can be an object or an array depending on endpoint.</p>
+        <h2 data-i18n="responseTitle">Format Respons</h2>
+        <p class="section-copy" data-i18n="responseCopy">Respons berhasil menggunakan envelope yang sama. Data dapat berupa object atau array, tergantung endpoint.</p>
         <pre><code>{
   "log_id": "019ab0f0-c8ec-7d25-9f62-2f23d92fcda3",
   "code": 200,
@@ -149,9 +268,9 @@
       </section>
 
       <section class="section" id="examples">
-        <h2>Implementation Examples</h2>
+        <h2 data-i18n="examplesTitle">Contoh Implementasi</h2>
 
-        <div class="language-tabs" role="tablist" aria-label="Programming language examples">
+        <div class="language-tabs" role="tablist" aria-label="Programming language examples" data-i18n-aria="examplesAria">
           <button class="language-tab active" type="button" role="tab" aria-selected="true" aria-controls="example-javascript" id="tab-javascript" data-example-tab="javascript">JavaScript</button>
           <button class="language-tab" type="button" role="tab" aria-selected="false" aria-controls="example-typescript" id="tab-typescript" data-example-tab="typescript">TypeScript</button>
           <button class="language-tab" type="button" role="tab" aria-selected="false" aria-controls="example-react" id="tab-react" data-example-tab="react">React</button>
@@ -265,7 +384,7 @@ func main() {
         </article>
 
         <article class="example" id="example-laravel" role="tabpanel" aria-labelledby="tab-laravel" data-example-panel="laravel" hidden>
-          <p class="note">Requires Laravel HTTP Client.</p>
+          <p class="note" data-i18n="laravelNote">Memerlukan Laravel HTTP Client.</p>
           <pre><code>use Illuminate\Support\Facades\Http;
 
 $response = Http::get('https://location-service-do.vercel.app/api/locations/provinces');
@@ -279,7 +398,7 @@ $provinces = $json['data'];</code></pre>
         </article>
 
         <article class="example" id="example-python" role="tabpanel" aria-labelledby="tab-python" data-example-panel="python" hidden>
-          <p class="note">Uses Python standard library.</p>
+          <p class="note" data-i18n="pythonNote">Menggunakan standard library Python.</p>
           <pre><code>import json
 from urllib.request import urlopen
 
@@ -296,35 +415,35 @@ print(provinces[0]['name'])</code></pre>
       </section>
 
       <section class="section">
-        <h2>Code Format</h2>
-        <p class="section-copy">Use full codes when saving data. Short codes are useful only for UI display or legacy forms.</p>
+        <h2 data-i18n="codeFormatTitle">Format Kode</h2>
+        <p class="section-copy" data-i18n="codeFormatCopy">Gunakan full code saat menyimpan data. Short code hanya untuk tampilan UI atau form lama.</p>
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Level</th>
-                <th>Full code</th>
-                <th>Short code</th>
+                <th data-i18n="tableLevel">Level</th>
+                <th data-i18n="tableFullCode">Full code</th>
+                <th data-i18n="tableShortCode">Short code</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td>Province</td>
+                <td data-i18n="tableProvince">Provinsi</td>
                 <td><code>11</code></td>
                 <td><code>11</code></td>
               </tr>
               <tr>
-                <td>Regency/city</td>
+                <td data-i18n="tableRegency">Kabupaten/kota</td>
                 <td><code>11.01</code></td>
                 <td><code>01</code></td>
               </tr>
               <tr>
-                <td>District</td>
+                <td data-i18n="tableDistrict">Kecamatan</td>
                 <td><code>11.01.01</code></td>
                 <td><code>01</code></td>
               </tr>
               <tr>
-                <td>Village</td>
+                <td data-i18n="tableVillage">Desa/kelurahan</td>
                 <td><code>11.01.01.2001</code></td>
                 <td><code>2001</code></td>
               </tr>

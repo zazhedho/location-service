@@ -13,6 +13,7 @@ const state = {
 }
 
 const els = {
+  appShell: document.querySelector('.app-shell'),
   apiBaseUrl: document.getElementById('apiBaseUrl'),
   resetApiUrl: document.getElementById('resetApiUrl'),
   healthDot: document.getElementById('healthDot'),
@@ -57,7 +58,7 @@ const els = {
   responseDrawerToggle: document.getElementById('responseDrawerToggle'),
   toast: document.getElementById('toast'),
   openSidebar: document.getElementById('openSidebar'),
-  closeSidebar: document.getElementById('closeSidebar'),
+  collapseSidebar: document.getElementById('collapseSidebar'),
   sidebarOverlay: document.getElementById('sidebarOverlay'),
   sidebar: document.getElementById('sidebar'),
 }
@@ -196,9 +197,9 @@ function renderMapLocation(item, detail, boundary, boundaryError) {
 
   if (leafletPointCount(path) >= 3) {
     const polygon = window.L.polygon(path, {
-      color: '#4f46e5',
-      fillColor: '#818cf8',
-      fillOpacity: 0.24,
+      color: '#d97706',
+      fillColor: '#fbbf24',
+      fillOpacity: 0.2,
       weight: 2,
     }).bindPopup(popup)
     state.mapLayers.addLayer(polygon)
@@ -232,11 +233,14 @@ function resetMap() {
   setMapMessage('Select a location to view it on the map.')
 }
 
-async function selectLocation(item) {
+async function selectLocation(item, node = null) {
   const code = item.full_code || item.code
   if (!code) return
 
+  renderBreadcrumb(item, node)
   const selectionId = ++state.mapSelectionId
+  setSelectionSummary(item, node)
+  if (item.level !== 'village') loadScopedStats(item, node, selectionId)
   const name = item.name || code
   const map = ensureMap()
   if (!map) return
@@ -369,6 +373,15 @@ function resetSelectionSummary() {
   els.selectionMetrics.innerHTML = ''
 }
 
+function setSelectionSummary(item, node) {
+  const levelLabel = item.level.charAt(0).toUpperCase() + item.level.slice(1)
+  setInlineStats(node, '')
+  els.selectionSummary.classList.remove('is-hidden')
+  els.selectionTitle.textContent = item.name
+  els.selectionSubtitle.textContent = `${levelLabel} code ${item.full_code || item.code}`
+  els.selectionMetrics.innerHTML = ''
+}
+
 function setInlineStats(node, text) {
   if (!node) return
   const inlineStats = node.querySelector(':scope > .tree-row .tree-inline-stats')
@@ -378,11 +391,8 @@ function setInlineStats(node, text) {
 }
 
 function renderScopedStats(item, stats, node) {
-  const levelLabel = item.level.charAt(0).toUpperCase() + item.level.slice(1)
+  setSelectionSummary(item, node)
   setInlineStats(node, scopedInlineText(item, stats))
-  els.selectionSummary.classList.remove('is-hidden')
-  els.selectionTitle.textContent = item.name
-  els.selectionSubtitle.textContent = `${levelLabel} code ${item.full_code || item.code}`
 
   if (item.level === 'province') {
     els.selectionMetrics.innerHTML = [
@@ -409,17 +419,17 @@ function renderScopedStats(item, stats, node) {
   els.selectionMetrics.innerHTML = ''
 }
 
-async function loadScopedStats(item, node) {
+async function loadScopedStats(item, node, selectionId = null) {
   setInlineStats(node, 'Counting…')
   try {
     const stats = await request('/api/locations/stats', scopedStatsParams(item), true)
+    if (selectionId !== null && selectionId !== state.mapSelectionId) return
     renderScopedStats(item, stats, node)
   } catch (err) {
+    if (selectionId !== null && selectionId !== state.mapSelectionId) return
     setInlineStats(node, '')
-    els.selectionSummary.classList.remove('is-hidden')
-    els.selectionTitle.textContent = item.name
+    setSelectionSummary(item, node)
     els.selectionSubtitle.textContent = `Scoped counts unavailable: ${err.message}`
-    els.selectionMetrics.innerHTML = ''
   }
 }
 
@@ -457,6 +467,7 @@ function createTreeNode(item) {
   const isLeaf = item.level === 'village'
   const node = document.createElement('div')
   node.className = 'tree-node' + (isLeaf ? ' leaf' : '')
+  node.locationItem = item
   node.dataset.code = item.full_code || item.code
   node.dataset.level = item.level
   node.dataset.name = item.name.toLowerCase()
@@ -503,7 +514,7 @@ function createTreeNode(item) {
   node.appendChild(row)
 
   const selectRow = () => {
-    selectLocation(item)
+    selectLocation(item, node)
     if (!isLeaf) toggleNode(node, item)
   }
   row.addEventListener('click', selectRow)
@@ -536,7 +547,6 @@ async function toggleNode(node, item) {
 
   node.classList.add('expanded')
   row.setAttribute('aria-expanded', 'true')
-  loadScopedStats(item, node)
 
   // already loaded
   if (children.dataset.loaded) return
@@ -608,8 +618,57 @@ function filterTree() {
 
 // ── Breadcrumb (simplified — shows nothing for tree, user navigates via tree) ──
 
-function renderBreadcrumb() {
+function breadcrumbPath(item, node) {
+  const path = []
+  let current = node
+  while (current?.classList.contains('tree-node')) {
+    path.unshift({ item: current.locationItem, node: current })
+    current = current.parentElement?.closest('.tree-node')
+  }
+
+  const itemCode = item.full_code || item.code
+  const last = path[path.length - 1]
+  const lastCode = last?.item && (last.item.full_code || last.item.code)
+  if (!last || lastCode !== itemCode) {
+    path.push({ item, node })
+  } else {
+    last.item = item
+  }
+  return path
+}
+
+function renderBreadcrumb(item = null, node = null) {
   els.breadcrumb.innerHTML = ''
+  if (!item) return
+
+  breadcrumbPath(item, node).forEach((entry, index, path) => {
+    if (index > 0) {
+      const separator = document.createElement('span')
+      separator.className = 'breadcrumb-sep'
+      separator.textContent = '›'
+      separator.setAttribute('aria-hidden', 'true')
+      els.breadcrumb.appendChild(separator)
+    }
+
+    const wrapper = document.createElement('span')
+    wrapper.className = 'breadcrumb-item'
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.textContent = entry.item.name || entry.item.code
+
+    if (index === path.length - 1) {
+      wrapper.classList.add('current')
+      button.setAttribute('aria-current', 'location')
+    } else {
+      button.addEventListener('click', () => {
+        selectLocation(entry.item, entry.node)
+        entry.node?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      })
+    }
+
+    wrapper.appendChild(button)
+    els.breadcrumb.appendChild(wrapper)
+  })
 }
 
 // ── Search ──
@@ -766,8 +825,37 @@ function switchTab(tab) {
 
 // ── Sidebar ──
 
-function openSidebar() { els.sidebar.classList.add('open'); els.sidebarOverlay.classList.add('show') }
-function closeSidebar() { els.sidebar.classList.remove('open'); els.sidebarOverlay.classList.remove('show') }
+function isMobileSidebar() {
+  return window.matchMedia('(max-width: 768px)').matches
+}
+
+function setSidebarState(open) {
+  if (isMobileSidebar()) {
+    els.appShell.classList.remove('sidebar-collapsed')
+    els.sidebar.classList.toggle('open', open)
+    els.sidebarOverlay.classList.toggle('show', open)
+  } else {
+    els.sidebar.classList.remove('open')
+    els.appShell.classList.toggle('sidebar-collapsed', !open)
+    els.sidebarOverlay.classList.remove('show')
+  }
+  els.openSidebar.setAttribute('aria-expanded', String(open))
+  els.openSidebar.setAttribute('aria-label', open ? 'Close sidebar' : 'Open sidebar')
+  els.collapseSidebar.setAttribute('aria-expanded', String(open))
+  els.collapseSidebar.setAttribute(
+    'aria-label',
+    open ? (isMobileSidebar() ? 'Close sidebar' : 'Collapse sidebar') : (isMobileSidebar() ? 'Open sidebar' : 'Expand sidebar'),
+  )
+}
+
+function openSidebar() { setSidebarState(true) }
+function closeSidebar() { setSidebarState(false) }
+function toggleSidebar() {
+  const open = isMobileSidebar()
+    ? els.sidebar.classList.contains('open')
+    : !els.appShell.classList.contains('sidebar-collapsed')
+  setSidebarState(!open)
+}
 
 // ── Events ──
 
@@ -780,9 +868,12 @@ function bindEvents() {
     localStorage.removeItem('location-service-api-base-url')
     checkHealth(); refreshData()
   })
-  els.openSidebar.addEventListener('click', openSidebar)
-  els.closeSidebar.addEventListener('click', closeSidebar)
+  els.openSidebar.addEventListener('click', toggleSidebar)
+  els.collapseSidebar.addEventListener('click', toggleSidebar)
   els.sidebarOverlay.addEventListener('click', closeSidebar)
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeSidebar()
+  })
   els.apiBaseUrl.addEventListener('change', () => {
     state.apiBaseUrl = els.apiBaseUrl.value.trim() || DEFAULT_API_BASE_URL
     localStorage.setItem('location-service-api-base-url', state.apiBaseUrl)
@@ -839,6 +930,7 @@ function bindEvents() {
     await navigator.clipboard.writeText(JSON.stringify(state.lastResponse, null, 2))
     showToast('Response copied')
   })
+  setSidebarState(!isMobileSidebar())
 }
 
 // ── Init ──

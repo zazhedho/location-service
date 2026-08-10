@@ -8,7 +8,7 @@
     <meta name="keywords" content="API wilayah Indonesia, API provinsi Indonesia, API kabupaten kota, API kecamatan, API desa kelurahan, data wilayah Indonesia, kode wilayah Indonesia" />
     <meta name="author" content="Location Service" />
     <meta name="robots" content="index, follow" />
-    <meta name="theme-color" content="#4f46e5" />
+    <meta name="theme-color" content="#d97706" />
     <link rel="canonical" href="https://location-service-do.vercel.app/" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta property="og:type" content="website" />
@@ -53,9 +53,6 @@
             <div class="brand-title">Location Service</div>
             <div class="brand-subtitle">Indonesia administrative data</div>
           </div>
-          <button class="hamburger" id="closeSidebar" aria-label="Close menu">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-          </button>
         </div>
 
         <div class="status-panel">
@@ -81,26 +78,33 @@
         <div class="nav-tabs" role="tablist" aria-label="Location views">
           <button class="nav-tab active" data-tab="browse" role="tab" aria-selected="true" aria-controls="browseView" id="browseTab">
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg>
-            Browse
+            <span>Browse</span>
           </button>
           <button class="nav-tab" data-tab="search" role="tab" aria-selected="false" aria-controls="searchView" id="searchTab">
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            Search
+            <span>Search</span>
           </button>
         </div>
 
         <nav class="sidebar-links" aria-label="Resources">
           <a class="nav-link" href="/docs">
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>
-            Docs
+            <span>Docs</span>
           </a>
         </nav>
+
+        <div class="sidebar-footer">
+          <button class="sidebar-collapse" id="collapseSidebar" type="button" aria-label="Collapse sidebar" aria-controls="sidebar" aria-expanded="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m11 17-5-5 5-5"/><path d="m18 17-5-5 5-5"/></svg>
+            <span>Collapse sidebar</span>
+          </button>
+        </div>
       </aside>
 
       <main class="main">
         <section class="toolbar">
           <div class="toolbar-title">
-            <button class="hamburger" id="openSidebar" aria-label="Open menu">
+            <button class="hamburger" id="openSidebar" aria-label="Toggle sidebar" aria-controls="sidebar" aria-expanded="true">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
             </button>
             <div>
