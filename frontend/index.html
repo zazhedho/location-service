@@ -158,9 +158,22 @@
 
           <section class="selection-summary is-hidden" id="selectionSummary">
             <div class="selection-copy">
-              <span>Current Selection</span>
-              <strong id="selectionTitle">Indonesia</strong>
-              <p id="selectionSubtitle">Global overview is shown above. Select a location to see scoped counts.</p>
+              <span class="selection-kicker">Current Selection</span>
+              <div class="selection-heading">
+                <strong id="selectionTitle">Indonesia</strong>
+                <span class="selection-level" id="selectionLevel"></span>
+              </div>
+              <div class="selection-meta" id="selectionSubtitle">
+                <span class="selection-token">
+                  <span>Full code</span>
+                  <code id="selectionCode">—</code>
+                </span>
+                <span class="selection-token selection-token-postal" id="selectionPostalToken" hidden>
+                  <span>Postal code</span>
+                  <code id="selectionPostal">—</code>
+                </span>
+              </div>
+              <p class="selection-status" id="selectionStatus" hidden></p>
             </div>
             <div class="selection-metrics" id="selectionMetrics"></div>
           </section>
@@ -212,7 +225,7 @@
             </div>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Code</th><th>Full Code</th><th>Name</th><th>Level</th><th>Parent</th><th>Action</th></tr></thead>
+                <thead><tr><th>Code</th><th>Full Code</th><th>Name</th><th>Level</th><th>Parent</th><th>Postal Code</th><th>Action</th></tr></thead>
                 <tbody id="searchRows"></tbody>
               </table>
             </div>

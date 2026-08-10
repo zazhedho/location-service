@@ -10,6 +10,7 @@ var (
 	ErrNotFound         = errors.New("location not found")
 	ErrBoundaryNotFound = errors.New("boundary not found")
 	locationCodePattern = regexp.MustCompile(`^(?:[0-9]{2}|[0-9]{2}\.[0-9]{2}|[0-9]{2}\.[0-9]{2}\.[0-9]{2}|[0-9]{2}\.[0-9]{2}\.[0-9]{2}\.[0-9]{4})$`)
+	postalCodePattern   = regexp.MustCompile(`^[0-9]{5}$`)
 )
 
 type Item struct {
@@ -18,6 +19,20 @@ type Item struct {
 	Name       string `json:"name"`
 	Level      string `json:"level,omitempty"`
 	ParentCode string `json:"parent_code,omitempty"`
+	PostalCode string `json:"postal_code,omitempty"`
+}
+
+type LocationRef struct {
+	Code string `json:"code"`
+	Name string `json:"name"`
+}
+
+type PostalLocation struct {
+	PostalCode string      `json:"postal_code"`
+	Village    LocationRef `json:"village"`
+	District   LocationRef `json:"district"`
+	Regency    LocationRef `json:"regency"`
+	Province   LocationRef `json:"province"`
 }
 
 type Coordinates struct {
@@ -39,6 +54,7 @@ type Detail struct {
 	Name        string       `json:"name"`
 	Level       string       `json:"level"`
 	ParentCode  string       `json:"parent_code,omitempty"`
+	PostalCode  string       `json:"postal_code,omitempty"`
 	Coordinates *Coordinates `json:"coordinates,omitempty"`
 	HasBoundary bool         `json:"has_boundary"`
 }
@@ -67,4 +83,8 @@ type StatsScope struct {
 
 func IsValidCode(code string) bool {
 	return locationCodePattern.MatchString(code)
+}
+
+func IsValidPostalCode(value string) bool {
+	return postalCodePattern.MatchString(value)
 }

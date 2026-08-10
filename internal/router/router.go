@@ -44,6 +44,7 @@ func New(db *sql.DB, redisClient *redis.Client, providers ...storage.Provider) h
 	mux.HandleFunc("GET /api/locations/districts", handler.Districts)
 	mux.HandleFunc("GET /api/locations/villages", handler.Villages)
 	mux.HandleFunc("GET /api/locations/search", handler.Search)
+	mux.HandleFunc("GET /api/postal-codes/{postal_code}", handler.PostalCodes)
 	mux.HandleFunc("GET /api/locations/{code}/boundary", handler.Boundary)
 	mux.HandleFunc("GET /api/locations/{code}/population", populationHandler.Get)
 	mux.HandleFunc("GET /api/locations/{code}/area", areaHandler.Area)

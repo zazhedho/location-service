@@ -13,6 +13,7 @@ type Service interface {
 	ListDistricts(ctx context.Context, provinceCode, regencyCode, codeFormat string) ([]domainlocation.Item, error)
 	ListVillages(ctx context.Context, provinceCode, regencyCode, districtCode, codeFormat string) ([]domainlocation.Item, error)
 	Search(ctx context.Context, query string, limit string) ([]domainlocation.Item, error)
+	PostalCodes(ctx context.Context, postalCode string) ([]domainlocation.PostalLocation, error)
 	Detail(ctx context.Context, code string) (domainlocation.Detail, error)
 	Boundary(ctx context.Context, code string) (domainlocation.Boundary, error)
 }

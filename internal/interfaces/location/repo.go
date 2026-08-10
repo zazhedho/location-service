@@ -13,6 +13,7 @@ type Repository interface {
 	ListDistricts(ctx context.Context, regencyCode, codeFormat string) ([]domainlocation.Item, error)
 	ListVillages(ctx context.Context, districtCode, codeFormat string) ([]domainlocation.Item, error)
 	Search(ctx context.Context, query string, limit int) ([]domainlocation.Item, error)
+	SearchByPostalCode(ctx context.Context, postalCode string) ([]domainlocation.PostalLocation, error)
 	GetDetail(ctx context.Context, code string) (domainlocation.Detail, error)
 	GetBoundary(ctx context.Context, code string) (domainlocation.Boundary, error)
 }

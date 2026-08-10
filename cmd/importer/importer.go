@@ -34,6 +34,15 @@ func Import(ctx context.Context, db *sql.DB, path string, truncate bool) (domain
 	regencyRows := make([][]any, 0, 600)
 	districtRows := make([][]any, 0, 8000)
 	villageRows := make([][]any, 0, 90000)
+	postalCodes := map[string]string(nil)
+	if postalPath, ok, err := ResolvePostalCodeFile(); err != nil {
+		return domainlocation.ImportStats{}, err
+	} else if ok {
+		postalCodes, err = LoadPostalCodes(postalPath)
+		if err != nil {
+			return domainlocation.ImportStats{}, err
+		}
+	}
 
 	stats := domainlocation.ImportStats{}
 	scanner := bufio.NewScanner(file)
@@ -69,7 +78,11 @@ func Import(ctx context.Context, db *sql.DB, path string, truncate bool) (domain
 			case 4:
 				regencyCode := parts[0] + "." + parts[1]
 				districtCode := regencyCode + "." + parts[2]
-				villageRows = append(villageRows, []any{code, parts[3], parts[0], regencyCode, districtCode, name, code})
+				var postalCode any
+				if value, ok := postalCodes[code]; ok {
+					postalCode = value
+				}
+				villageRows = append(villageRows, []any{code, parts[3], parts[0], regencyCode, districtCode, name, postalCode, code})
 				stats.Villages++
 			}
 		}
@@ -99,7 +112,7 @@ func Import(ctx context.Context, db *sql.DB, path string, truncate bool) (domain
 	if err := copyRows(ctx, tx, "districts", []string{"code", "short_code", "province_code", "regency_code", "name", "source_code"}, districtRows); err != nil {
 		return domainlocation.ImportStats{}, err
 	}
-	if err := copyRows(ctx, tx, "villages", []string{"code", "short_code", "province_code", "regency_code", "district_code", "name", "source_code"}, villageRows); err != nil {
+	if err := copyRows(ctx, tx, "villages", []string{"code", "short_code", "province_code", "regency_code", "district_code", "name", "postal_code", "source_code"}, villageRows); err != nil {
 		return domainlocation.ImportStats{}, err
 	}
 	if err := tx.Commit(); err != nil {

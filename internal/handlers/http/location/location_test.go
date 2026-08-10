@@ -31,6 +31,9 @@ func (handlerRepository) ListVillages(context.Context, string, string) ([]domain
 func (handlerRepository) Search(context.Context, string, int) ([]domainlocation.Item, error) {
 	return nil, nil
 }
+func (handlerRepository) SearchByPostalCode(context.Context, string) ([]domainlocation.PostalLocation, error) {
+	return []domainlocation.PostalLocation{{PostalCode: "23773"}}, nil
+}
 func (handlerRepository) GetDetail(context.Context, string) (domainlocation.Detail, error) {
 	return domainlocation.Detail{
 		Code:        "11.01",
@@ -110,5 +113,30 @@ func TestDetailResponseIncludesCoordinates(t *testing.T) {
 	body := recorder.Body.String()
 	if !strings.Contains(body, `"coordinates":{"latitude":3.1,"longitude":97.4}`) || !strings.Contains(body, `"has_boundary":true`) {
 		t.Fatalf("detail fields missing: %s", body)
+	}
+}
+
+func TestPostalCodesResponse(t *testing.T) {
+	handler := NewHandler(locationservice.NewService(handlerRepository{}))
+	request := httptest.NewRequest(http.MethodGet, "/api/postal-codes/23773", nil)
+	request.SetPathValue("postal_code", "23773")
+	recorder := httptest.NewRecorder()
+
+	handler.PostalCodes(recorder, request)
+
+	if recorder.Code != http.StatusOK || !strings.Contains(recorder.Body.String(), `"postal_code":"23773"`) {
+		t.Fatalf("status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+}
+
+func TestPostalCodesRejectsInvalidFormat(t *testing.T) {
+	handler := NewHandler(locationservice.NewService(handlerRepository{}))
+	request := httptest.NewRequest(http.MethodGet, "/api/postal-codes/2377", nil)
+	request.SetPathValue("postal_code", "2377")
+	recorder := httptest.NewRecorder()
+
+	handler.PostalCodes(recorder, request)
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("status=%d body=%s", recorder.Code, recorder.Body.String())
 	}
 }

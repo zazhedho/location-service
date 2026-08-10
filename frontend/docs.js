@@ -81,7 +81,7 @@ const translations = {
     district: 'Kecamatan', needsRegencyCode: 'Butuh kode Kab/Kota', village: 'Desa/Kelurahan', needsDistrictCode: 'Butuh kode Kecamatan',
     demoTitle: 'Coba Langsung', demoCopy: 'Simulasikan form alamat dengan API ini. Pilih tiap tingkat wilayah untuk melihat request berjenjang secara otomatis.',
     demoProvinceLabel: '1. Pilih Provinsi', demoLoadingProvinces: 'Memuat data provinsi...', demoRegencyLabel: '2. Pilih Kabupaten / Kota',
-    demoDistrictLabel: '3. Pilih Kecamatan', demoVillageLabel: '4. Pilih Desa / Kelurahan',
+    demoDistrictLabel: '3. Pilih Kecamatan', demoVillageLabel: '4. Pilih Desa / Kelurahan', demoPostalCodeLabel: '5. Kode Pos',
     demoSelectProvinceFirst: 'Pilih provinsi terlebih dahulu', demoSelectRegencyFirst: 'Pilih kabupaten/kota terlebih dahulu', demoSelectDistrictFirst: 'Pilih kecamatan terlebih dahulu',
     demoWaiting: 'Menunggu aksi...', demoResponsePlaceholder: '// Hasil respons API (JSON) akan tampil di sini',
     quickStartTitle: 'Mulai di Sini', stepLoadProvincesTitle: 'Muat provinsi', stepLoadProvincesCopy: 'Gunakan saat halaman dimuat untuk mengisi dropdown pertama.',
@@ -91,8 +91,8 @@ const translations = {
     endpointsTitle: 'Endpoint', endpointsCopy: 'Semua endpoint mengembalikan JSON. Tambahkan <code>code_format=short</code> jika hanya memerlukan kode level turunan.',
     endpointsNote: 'Ganti placeholder seperti <code>{province_code}</code> dengan nilai dari endpoint sebelumnya.', endpointHealth: 'Pemeriksaan kesehatan',
     endpointStats: 'Total dan hitungan berdasarkan wilayah', endpointStatsNote: 'Opsional: <code>province_code={province_code}</code>, <code>regency_code={regency_code}</code>, <code>district_code={district_code}</code>',
-    endpointProvinces: 'Provinsi', endpointRegencies: 'Kabupaten / kota', endpointDistricts: 'Kecamatan', endpointVillages: 'Desa / kelurahan', endpointSearch: 'Cari berdasarkan nama',
-    endpointDetail: 'Detail lokasi', endpointDetailNote: 'Mengembalikan hierarki, koordinat jika tersedia, dan <code>has_boundary</code>.',
+    endpointProvinces: 'Provinsi', endpointRegencies: 'Kabupaten / kota', endpointDistricts: 'Kecamatan', endpointVillages: 'Desa / kelurahan', endpointPostalCodes: 'Cari kode pos', endpointPostalCodesNote: 'Mengembalikan desa/kelurahan yang menggunakan kode pos tersebut beserta hierarkinya.', endpointSearch: 'Cari berdasarkan nama',
+    endpointDetail: 'Detail lokasi', endpointDetailNote: 'Mengembalikan hierarki, koordinat jika tersedia, <code>has_boundary</code>, dan <code>postal_code</code> untuk desa/kelurahan.',
     endpointBoundary: 'Batas wilayah lokasi', endpointBoundaryNote: 'Mengembalikan <code>leaflet_path</code> dalam urutan Leaflet <code>[latitude, longitude]</code>. Batas yang tidak tersedia mengembalikan <code>404</code>.',
     endpointIslands: 'Daftar pulau', endpointIslandsNote: '<code>province_code</code> bersifat opsional. Paginasi default halaman <code>1</code>, limit <code>50</code>, maksimum <code>500</code>.',
     endpointIslandDetail: 'Detail pulau', endpointIslandDetailNote: 'Gunakan kode pulau seperti <code>11.01.40001</code>.',
@@ -114,7 +114,7 @@ const translations = {
     district: 'District', needsRegencyCode: 'Needs regency code', village: 'Village', needsDistrictCode: 'Needs district code',
     demoTitle: 'Interactive Demo', demoCopy: 'Simulate an address form with this API. Select each location level to see the cascading requests.',
     demoProvinceLabel: '1. Select Province', demoLoadingProvinces: 'Loading provinces...', demoRegencyLabel: '2. Select Regency / City',
-    demoDistrictLabel: '3. Select District', demoVillageLabel: '4. Select Village',
+    demoDistrictLabel: '3. Select District', demoVillageLabel: '4. Select Village', demoPostalCodeLabel: '5. Postal Code',
     demoSelectProvinceFirst: 'Select a province first', demoSelectRegencyFirst: 'Select a regency/city first', demoSelectDistrictFirst: 'Select a district first',
     demoWaiting: 'Waiting for an action...', demoResponsePlaceholder: '// API response (JSON) appears here',
     quickStartTitle: 'Start Here', stepLoadProvincesTitle: 'Load provinces', stepLoadProvincesCopy: 'Use this on page load for your first dropdown.',
@@ -124,8 +124,8 @@ const translations = {
     endpointsTitle: 'Endpoints', endpointsCopy: 'All endpoints return JSON. Add <code>code_format=short</code> when you only need child-level codes.',
     endpointsNote: 'Replace placeholders like <code>{province_code}</code> with values returned from the previous endpoint.', endpointHealth: 'Health check',
     endpointStats: 'Total and scoped counts', endpointStatsNote: 'Optional: <code>province_code={province_code}</code>, <code>regency_code={regency_code}</code>, <code>district_code={district_code}</code>',
-    endpointProvinces: 'Provinces', endpointRegencies: 'Regencies / cities', endpointDistricts: 'Districts', endpointVillages: 'Villages', endpointSearch: 'Search by name',
-    endpointDetail: 'Location detail', endpointDetailNote: 'Returns hierarchy data, coordinates when available, and <code>has_boundary</code>.',
+    endpointProvinces: 'Provinces', endpointRegencies: 'Regencies / cities', endpointDistricts: 'Districts', endpointVillages: 'Villages', endpointPostalCodes: 'Postal code lookup', endpointPostalCodesNote: 'Returns villages using the postal code together with their administrative hierarchy.', endpointSearch: 'Search by name',
+    endpointDetail: 'Location detail', endpointDetailNote: 'Returns hierarchy data, coordinates when available, <code>has_boundary</code>, and <code>postal_code</code> for villages.',
     endpointBoundary: 'Location boundary', endpointBoundaryNote: 'Returns <code>leaflet_path</code> in Leaflet <code>[latitude, longitude]</code> order. A missing boundary returns <code>404</code>.',
     endpointIslands: 'Islands list', endpointIslandsNote: '<code>province_code</code> is optional. Pagination defaults to page <code>1</code>, limit <code>50</code>, and caps at <code>500</code>.',
     endpointIslandDetail: 'Island detail', endpointIslandDetailNote: 'Use an island code such as <code>11.01.40001</code>.',
@@ -162,11 +162,13 @@ const demoProvince = document.getElementById('demo-province')
 const demoRegency = document.getElementById('demo-regency')
 const demoDistrict = document.getElementById('demo-district')
 const demoVillage = document.getElementById('demo-village')
+const demoPostalCode = document.getElementById('demo-postal-code')
 const demoResponse = document.getElementById('demo-response')
 const demoEndpointUrl = document.getElementById('demo-endpoint-url')
 const demoBaseUrl = window.location.origin
 let docsLanguage = 'id'
 let demoRequestId = 0
+let demoVillageItems = []
 
 try {
   docsLanguage = localStorage.getItem('location-service-docs-language') === 'en' ? 'en' : 'id'
@@ -177,7 +179,7 @@ function copyFor(key) {
 }
 
 function refreshDemoLanguage() {
-  if (!demoProvince || !demoRegency || !demoDistrict || !demoVillage) return
+  if (!demoProvince || !demoRegency || !demoDistrict || !demoVillage || !demoPostalCode) return
   if (demoProvince.options[0]) {
     demoProvince.options[0].textContent = demoProvince.options.length > 1
       ? demoCopy[docsLanguage].chooseProvince
@@ -198,6 +200,9 @@ function refreshDemoLanguage() {
       ? demoCopy[docsLanguage].chooseVillage
       : demoCopy[docsLanguage].selectDistrictFirst
   }
+  demoPostalCode.placeholder = docsLanguage === 'id'
+    ? 'Pilih desa untuk mengisi kode pos'
+    : 'Select a village to fill the postal code'
   const responseText = demoResponse?.textContent.trim() || ''
   if (!demoProvince.value && demoResponse && !responseText.startsWith('{') && !responseText.startsWith('[') && !responseText.startsWith('Error:')) {
     demoResponse.textContent = demoCopy[docsLanguage].responsePlaceholder
@@ -266,8 +271,19 @@ function resetDemoSelect(select, placeholder) {
   select.disabled = true
 }
 
+function resetDemoPostalCode() {
+  demoVillageItems = []
+  if (demoPostalCode) demoPostalCode.value = ''
+}
+
+function updateDemoPostalCode() {
+  const selected = demoVillageItems.find((item) => item.full_code === demoVillage.value)
+  demoPostalCode.value = selected?.postal_code || ''
+}
+
 async function loadRegencies(provinceCode) {
   const requestId = ++demoRequestId
+  resetDemoPostalCode()
   resetDemoSelect(demoDistrict, demoCopy[docsLanguage].selectRegencyFirst)
   resetDemoSelect(demoVillage, demoCopy[docsLanguage].selectDistrictFirst)
   if (!provinceCode) {
@@ -294,6 +310,7 @@ async function loadRegencies(provinceCode) {
 
 async function loadDistricts(regencyCode) {
   const requestId = ++demoRequestId
+  resetDemoPostalCode()
   resetDemoSelect(demoVillage, demoCopy[docsLanguage].selectDistrictFirst)
   if (!regencyCode) {
     resetDemoSelect(demoDistrict, demoCopy[docsLanguage].selectRegencyFirst)
@@ -318,6 +335,7 @@ async function loadDistricts(regencyCode) {
 
 async function loadVillages(districtCode) {
   const requestId = ++demoRequestId
+  resetDemoPostalCode()
   if (!districtCode) {
     resetDemoSelect(demoVillage, demoCopy[docsLanguage].selectDistrictFirst)
     demoEndpointUrl.textContent = demoCopy[docsLanguage].waiting
@@ -331,6 +349,7 @@ async function loadVillages(districtCode) {
     const data = await requestDemo(`/api/locations/villages?district_code=${encodeURIComponent(districtCode)}`)
     if (requestId !== demoRequestId) return
     demoResponse.textContent = JSON.stringify(data, null, 2)
+    demoVillageItems = data.data || []
     fillSelect(demoVillage, demoCopy[docsLanguage].chooseVillage, data.data)
     demoVillage.disabled = false
   } catch (error) {
@@ -345,5 +364,6 @@ if (demoProvince) {
   demoProvince.addEventListener('change', (event) => loadRegencies(event.target.value))
   demoRegency.addEventListener('change', (event) => loadDistricts(event.target.value))
   demoDistrict.addEventListener('change', (event) => loadVillages(event.target.value))
+  demoVillage.addEventListener('change', updateDemoPostalCode)
   loadProvinces()
 }

@@ -122,6 +122,10 @@
                 <option value="">Pilih kecamatan terlebih dahulu</option>
               </select>
             </div>
+            <div class="form-group">
+              <label for="demo-postal-code" data-i18n="demoPostalCodeLabel">5. Kode Pos</label>
+              <input id="demo-postal-code" class="demo-input" type="text" inputmode="numeric" autocomplete="postal-code" readonly placeholder="Pilih desa untuk mengisi kode pos" />
+            </div>
           </div>
           <div class="demo-code-preview">
             <span class="preview-label" id="demo-endpoint-url">Menunggu aksi...</span>
@@ -203,6 +207,12 @@ GET /api/locations/{code}/boundary</code></pre>
             <strong data-i18n="endpointVillages">Desa / kelurahan</strong>
             <code>GET /api/locations/villages?district_code={district_code}</code>
             <button type="button" class="copy-curl" data-curl-path="/api/locations/villages?district_code=11.01.01">Salin cURL</button>
+          </article>
+          <article>
+            <strong data-i18n="endpointPostalCodes">Cari kode pos</strong>
+            <code>GET /api/postal-codes/{postal_code}</code>
+            <small data-i18n-html="endpointPostalCodesNote">Mengembalikan desa/kelurahan yang menggunakan kode pos tersebut beserta hierarkinya.</small>
+            <button type="button" class="copy-curl" data-curl-path="/api/postal-codes/23773">Salin cURL</button>
           </article>
           <article>
             <strong data-i18n="endpointSearch">Cari berdasarkan nama</strong>

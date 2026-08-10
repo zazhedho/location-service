@@ -56,6 +56,12 @@ func (h *Handler) Search(w http.ResponseWriter, r *http.Request) {
 	respond(w, r, items, err)
 }
 
+func (h *Handler) PostalCodes(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "public, max-age=86400, stale-while-revalidate=86400")
+	items, err := h.service.PostalCodes(r.Context(), r.PathValue("postal_code"))
+	respond(w, r, items, err)
+}
+
 func (h *Handler) Detail(w http.ResponseWriter, r *http.Request) {
 	detail, err := h.service.Detail(r.Context(), r.PathValue("code"))
 	respond(w, r, detail, err)
@@ -95,6 +101,7 @@ func isClientError(message string) bool {
 		"district_code is required",
 		"q is required",
 		"limit must be a number between 1 and 500",
+		"postal_code is invalid",
 		"code is required",
 		"code is invalid",
 		"province_code is required when regency_code is short",

@@ -32,6 +32,7 @@ ENV PORT=8080
 ENV PATH_MIGRATE=migrations/000001_init.sql
 ENV AUTO_SEED=true
 ENV SEED_FILE=data/wilayah.sql
+ENV POSTAL_CODE_FILE=data/kodepos.sql
 
 EXPOSE 8080
 

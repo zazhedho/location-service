@@ -40,9 +40,11 @@ CREATE TABLE IF NOT EXISTS villages (
     regency_code varchar(5) NOT NULL REFERENCES regencies(code) ON DELETE CASCADE,
     district_code varchar(8) NOT NULL REFERENCES districts(code) ON DELETE CASCADE,
     name varchar(100) NOT NULL,
+    postal_code varchar(5),
     source_code varchar(13) NOT NULL,
     updated_at timestamptz NOT NULL DEFAULT now(),
-    UNIQUE (district_code, short_code)
+    UNIQUE (district_code, short_code),
+    CONSTRAINT villages_postal_code_format CHECK (postal_code IS NULL OR postal_code ~ '^[0-9]{5}$')
 );
 
 CREATE INDEX IF NOT EXISTS idx_raw_locations_name ON raw_locations (name);
@@ -52,6 +54,7 @@ CREATE INDEX IF NOT EXISTS idx_districts_regency ON districts (regency_code, nam
 CREATE INDEX IF NOT EXISTS idx_villages_province ON villages (province_code);
 CREATE INDEX IF NOT EXISTS idx_villages_regency ON villages (regency_code);
 CREATE INDEX IF NOT EXISTS idx_villages_district ON villages (district_code, name);
+CREATE INDEX IF NOT EXISTS idx_villages_postal_code ON villages (postal_code);
 CREATE INDEX IF NOT EXISTS idx_provinces_name ON provinces (name);
 CREATE INDEX IF NOT EXISTS idx_regencies_name ON regencies (name);
 CREATE INDEX IF NOT EXISTS idx_districts_name ON districts (name);

@@ -2,6 +2,7 @@ package location
 
 import (
 	"context"
+	"database/sql"
 	domainlocation "location-service/internal/domain/location"
 	"strings"
 )
@@ -38,8 +39,12 @@ func (r *repository) queryLocations(ctx context.Context, query string, args ...a
 	items := make([]domainlocation.Item, 0)
 	for rows.Next() {
 		var item domainlocation.Item
-		if err := rows.Scan(&item.Code, &item.FullCode, &item.Name, &item.Level, &item.ParentCode); err != nil {
+		var postalCode sql.NullString
+		if err := rows.Scan(&item.Code, &item.FullCode, &item.Name, &item.Level, &item.ParentCode, &postalCode); err != nil {
 			return nil, err
+		}
+		if postalCode.Valid {
+			item.PostalCode = postalCode.String
 		}
 		items = append(items, item)
 	}

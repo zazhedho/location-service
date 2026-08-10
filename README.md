@@ -149,7 +149,7 @@ Normalized tables:
 | `provinces` | 38 |
 | `regencies` | 514 |
 | `districts` | 7,285 |
-| `villages` | 83,762 |
+| `villages` | 83,762 (`postal_code` included when `data/kodepos.sql` is available) |
 | `location_population` | 552 after statistics import |
 | `location_areas` | 552 after statistics import |
 
@@ -171,6 +171,7 @@ CORS_ALLOWED_ORIGINS=*
 COMMAND=serve
 
 DATABASE_URL=postgres://location:location@localhost:5438/location?sslmode=disable
+POSTAL_CODE_FILE=data/kodepos.sql
 
 REDIS_HOST=localhost
 REDIS_PORT=6379
@@ -272,9 +273,10 @@ go run . import-boundaries -dir ../wilayah-indonesia-api/init-db
 go run . import-islands -file ../wilayah-indonesia-api/init-db/02-data.sql
 go run . import-population -file ../wilayah-indonesia-api/init-db/02-data.sql
 go run . import-areas -file ../wilayah-indonesia-api/init-db/02-data.sql
+go run . import-postal-codes -file data/kodepos.sql
 ```
 
-Imports boundary, island, population, and area data from the cloned source project. Imports run in a transaction and invalidate their Redis cache prefix after success.
+Imports boundary, island, population, area, and postal-code data from the cloned source project. Postal-code import only updates `villages.postal_code`; it does not truncate location or boundary data. Imports run in a transaction and invalidate their Redis cache prefix after success.
 
 ```bash
 go run . serve
@@ -425,7 +427,26 @@ Example short code item:
   "full_code": "11.01.01.2001",
   "name": "Keude Bakongan",
   "level": "village",
-  "parent_code": "11.01.01"
+  "parent_code": "11.01.01",
+  "postal_code": "23773"
+}
+```
+
+### Postal Code Lookup
+
+```text
+GET /api/postal-codes/23773
+```
+
+Returns every village using the exact five-digit postal code, including its district, regency/city, and province. Village items from the list, name search, and location detail endpoints also include `postal_code`, so an address form can fill it immediately after a village is selected.
+
+```json
+{
+  "postal_code": "23773",
+  "village": {"code": "11.01.01.2001", "name": "Keude Bakongan"},
+  "district": {"code": "11.01.01", "name": "Bakongan"},
+  "regency": {"code": "11.01", "name": "Kabupaten Aceh Selatan"},
+  "province": {"code": "11", "name": "Aceh"}
 }
 ```
 

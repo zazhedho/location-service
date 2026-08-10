@@ -36,7 +36,12 @@ const els = {
   villageCount: document.getElementById('villageCount'),
   selectionSummary: document.getElementById('selectionSummary'),
   selectionTitle: document.getElementById('selectionTitle'),
+  selectionLevel: document.getElementById('selectionLevel'),
   selectionSubtitle: document.getElementById('selectionSubtitle'),
+  selectionCode: document.getElementById('selectionCode'),
+  selectionPostalToken: document.getElementById('selectionPostalToken'),
+  selectionPostal: document.getElementById('selectionPostal'),
+  selectionStatus: document.getElementById('selectionStatus'),
   selectionMetrics: document.getElementById('selectionMetrics'),
   mapStatus: document.getElementById('mapStatus'),
   mapMessage: document.getElementById('mapMessage'),
@@ -185,7 +190,8 @@ function locationPopup(location) {
   const name = escapeHTML(location.name || 'Selected location')
   const level = escapeHTML(location.level)
   const code = escapeHTML(location.full_code || location.code)
-  return `<strong>${name}</strong>${level ? `<br><span>${level}</span>` : ''}${code ? `<br><code>${code}</code>` : ''}`
+  const postalCode = escapeHTML(location.postal_code)
+  return `<strong>${name}</strong>${level ? `<br><span>${level}</span>` : ''}${code ? `<br><code>${code}</code>` : ''}${postalCode ? `<br><span>Postal code: ${postalCode}</span>` : ''}`
 }
 
 function renderMapLocation(item, detail, boundary, boundaryError) {
@@ -253,6 +259,11 @@ async function selectLocation(item, node = null) {
     const detail = await request(`/api/locations/${encodeURIComponent(code)}`)
     if (selectionId !== state.mapSelectionId) return
     if (!detail || Array.isArray(detail) || typeof detail !== 'object') throw new Error('Location detail unavailable')
+    if (detail.postal_code && !item.postal_code) {
+      item.postal_code = detail.postal_code
+      updateTreePostalCode(node, detail.postal_code)
+      setSelectionSummary(item, node)
+    }
 
     let boundary = null
     let boundaryError = null
@@ -369,16 +380,28 @@ function scopedInlineText(item, stats) {
 function resetSelectionSummary() {
   els.selectionSummary.classList.add('is-hidden')
   els.selectionTitle.textContent = 'Indonesia'
-  els.selectionSubtitle.textContent = 'Global overview is shown above. Select a location to see scoped counts.'
+  els.selectionLevel.textContent = ''
+  els.selectionCode.textContent = '—'
+  els.selectionPostal.textContent = '—'
+  els.selectionPostalToken.hidden = true
+  els.selectionStatus.textContent = ''
+  els.selectionStatus.hidden = true
   els.selectionMetrics.innerHTML = ''
 }
 
 function setSelectionSummary(item, node) {
   const levelLabel = item.level.charAt(0).toUpperCase() + item.level.slice(1)
+  const code = item.full_code || item.code || '—'
+  const postal = item.postal_code || ''
   setInlineStats(node, '')
   els.selectionSummary.classList.remove('is-hidden')
-  els.selectionTitle.textContent = item.name
-  els.selectionSubtitle.textContent = `${levelLabel} code ${item.full_code || item.code}`
+  els.selectionTitle.textContent = item.name || code
+  els.selectionLevel.textContent = levelLabel
+  els.selectionCode.textContent = code
+  els.selectionPostal.textContent = postal || '—'
+  els.selectionPostalToken.hidden = !postal
+  els.selectionStatus.textContent = ''
+  els.selectionStatus.hidden = true
   els.selectionMetrics.innerHTML = ''
 }
 
@@ -429,7 +452,8 @@ async function loadScopedStats(item, node, selectionId = null) {
     if (selectionId !== null && selectionId !== state.mapSelectionId) return
     setInlineStats(node, '')
     setSelectionSummary(item, node)
-    els.selectionSubtitle.textContent = `Scoped counts unavailable: ${err.message}`
+    els.selectionStatus.textContent = `Scoped counts unavailable: ${err.message}`
+    els.selectionStatus.hidden = false
   }
 }
 
@@ -506,11 +530,17 @@ function createTreeNode(item) {
   const inlineStats = document.createElement('span')
   inlineStats.className = 'tree-inline-stats'
 
+  const postalCode = document.createElement('span')
+  postalCode.className = 'tree-postal-code'
+  postalCode.textContent = item.postal_code || ''
+  postalCode.title = item.postal_code ? `Postal code ${item.postal_code}` : ''
+  postalCode.setAttribute('aria-label', item.postal_code ? `Postal code ${item.postal_code}` : '')
+
   const badge = document.createElement('span')
   badge.className = `tree-badge tree-badge-${item.level}`
   badge.textContent = item.level
 
-  row.append(chevron, code, name, inlineStats, badge)
+  row.append(chevron, code, name, inlineStats, postalCode, badge)
   node.appendChild(row)
 
   const selectRow = () => {
@@ -533,6 +563,15 @@ function createTreeNode(item) {
   }
 
   return node
+}
+
+function updateTreePostalCode(node, value) {
+  if (!node) return
+  const postalCode = node.querySelector(':scope > .tree-row .tree-postal-code')
+  if (!postalCode) return
+  postalCode.textContent = value || ''
+  postalCode.title = value ? `Postal code ${value}` : ''
+  postalCode.setAttribute('aria-label', value ? `Postal code ${value}` : '')
 }
 
 async function toggleNode(node, item) {
@@ -679,7 +718,7 @@ function renderSearchRows(tbody, items) {
     const row = document.createElement('tr')
     row.className = 'empty-row'
     const cell = document.createElement('td')
-    cell.colSpan = 6
+    cell.colSpan = 7
     cell.textContent = 'No results'
     row.appendChild(cell)
     tbody.appendChild(row)
@@ -688,7 +727,7 @@ function renderSearchRows(tbody, items) {
   items.forEach((item) => {
     const row = document.createElement('tr')
     row.className = 'search-row'
-    ;['code', 'full_code', 'name', 'level', 'parent_code'].forEach((col, idx) => {
+    ;['code', 'full_code', 'name', 'level', 'parent_code', 'postal_code'].forEach((col, idx) => {
       const cell = document.createElement('td')
       const value = item[col] || '-'
       if (idx === 0 && value !== '-') {
@@ -704,6 +743,9 @@ function renderSearchRows(tbody, items) {
         badge.className = `level-badge level-${value}`
         badge.textContent = value
         cell.appendChild(badge)
+      } else if (col === 'postal_code' && value !== '-') {
+        cell.className = 'postal-code-cell'
+        cell.textContent = value
       } else {
         cell.textContent = value
       }
@@ -784,7 +826,7 @@ function setTableError(tbody, columns, message) {
 async function runSearch() {
   const q = els.searchInput.value.trim()
   if (!q) { showToast('Search query is required'); return }
-  setTableLoading(els.searchRows, ['', '', '', '', '', ''])
+  setTableLoading(els.searchRows, ['', '', '', '', '', '', ''])
   els.searchMeta.textContent = 'Searching…'
   try {
     const rows = await request('/api/locations/search', { q, limit: els.searchLimit.value || 25 })
@@ -793,7 +835,7 @@ async function runSearch() {
     els.searchMeta.textContent = `${rows.length} result${rows.length === 1 ? '' : 's'}${isMobile ? ' — tap a row to browse' : ''}`
   } catch (err) {
     els.searchMeta.textContent = 'Search failed'
-    setTableError(els.searchRows, ['', '', '', '', '', ''], err.message)
+    setTableError(els.searchRows, ['', '', '', '', '', '', ''], err.message)
     showToast(err.message)
   }
 }

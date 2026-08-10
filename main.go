@@ -47,12 +47,16 @@ func main() {
 		if err := importAreas(); err != nil {
 			log.Fatal(err)
 		}
+	case "import-postal-codes":
+		if err := importPostalCodes(); err != nil {
+			log.Fatal(err)
+		}
 	case "migrate":
 		if err := migrate(); err != nil {
 			log.Fatal(err)
 		}
 	default:
-		log.Fatalf("unknown command %q; use serve, import, import-boundaries, import-islands, import-population, import-areas, or migrate", cmd)
+		log.Fatalf("unknown command %q; use serve, import, import-boundaries, import-islands, import-population, import-areas, import-postal-codes, or migrate", cmd)
 	}
 }
 
@@ -252,6 +256,30 @@ func importAreas() error {
 	}
 	invalidateCache("location:area:*")
 	log.Printf("area import done: read=%d imported=%d unknown=%d code_corrections=%d name_corrections=%d", stats.RowsRead, stats.RowsImported, stats.RowsSkippedUnknown, stats.CodeCorrections, stats.NameCorrections)
+	return nil
+}
+
+func importPostalCodes() error {
+	fs := flag.NewFlagSet("import-postal-codes", flag.ExitOnError)
+	path := fs.String("file", "data/kodepos.sql", "path to postal-code SQL seed")
+	if err := fs.Parse(commandArgs()); err != nil {
+		return err
+	}
+
+	db, err := database.Open()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	if err := database.Migrate(db); err != nil {
+		return fmt.Errorf("migrate schema: %w", err)
+	}
+	count, err := importer.ImportPostalCodes(context.Background(), db, *path)
+	if err != nil {
+		return err
+	}
+	invalidateCache("location:*")
+	log.Printf("postal-code import done: villages=%d", count)
 	return nil
 }
 

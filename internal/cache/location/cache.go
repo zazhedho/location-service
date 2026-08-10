@@ -71,6 +71,10 @@ func SearchKey(query string, limit int) string {
 	return fmt.Sprintf("%ssearch:%s:%d", prefix, hex.EncodeToString(sum[:]), limit)
 }
 
+func PostalCodeKey(postalCode string) string {
+	return fmt.Sprintf("%spostal-code:%s", prefix, clean(postalCode))
+}
+
 func BoundaryKey(code string) string {
 	return fmt.Sprintf("%sboundary:%s", prefix, clean(code))
 }
@@ -137,6 +141,47 @@ func Set(ctx context.Context, client *redis.Client, key string, items []domainlo
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
+	if err := client.Set(ctx, key, payload, TTL()).Err(); err != nil {
+		log.Printf("location cache set failed; key=%s; err=%v", key, err)
+	}
+}
+
+func GetPostalLocations(ctx context.Context, client *redis.Client, key string) ([]domainlocation.PostalLocation, bool) {
+	if client == nil {
+		return nil, false
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	raw, err := client.Get(ctx, key).Result()
+	if err != nil {
+		if !errors.Is(err, redis.Nil) {
+			log.Printf("location cache get failed; key=%s; err=%v", key, err)
+		}
+		return nil, false
+	}
+
+	var items []domainlocation.PostalLocation
+	if err := json.Unmarshal([]byte(raw), &items); err != nil {
+		log.Printf("location cache unmarshal failed; key=%s; err=%v", key, err)
+		return nil, false
+	}
+	return items, true
+}
+
+func SetPostalLocations(ctx context.Context, client *redis.Client, key string, items []domainlocation.PostalLocation) {
+	if client == nil {
+		return
+	}
+
+	payload, err := json.Marshal(items)
+	if err != nil {
+		log.Printf("location cache marshal failed; key=%s; err=%v", key, err)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
 	if err := client.Set(ctx, key, payload, TTL()).Err(); err != nil {
 		log.Printf("location cache set failed; key=%s; err=%v", key, err)
 	}

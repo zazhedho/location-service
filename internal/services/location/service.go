@@ -134,6 +134,26 @@ func (s *service) Search(ctx context.Context, query string, limit string) ([]dom
 	return items, nil
 }
 
+func (s *service) PostalCodes(ctx context.Context, postalCode string) ([]domainlocation.PostalLocation, error) {
+	postalCode = strings.TrimSpace(postalCode)
+	if !domainlocation.IsValidPostalCode(postalCode) {
+		return nil, errors.New("postal_code is invalid")
+	}
+	key := locationcache.PostalCodeKey(postalCode)
+	if items, ok := locationcache.GetPostalLocations(ctx, s.redis, key); ok {
+		return items, nil
+	}
+	items, err := s.repo.SearchByPostalCode(ctx, postalCode)
+	if err != nil {
+		return nil, err
+	}
+	if items == nil {
+		items = []domainlocation.PostalLocation{}
+	}
+	locationcache.SetPostalLocations(ctx, s.redis, key, items)
+	return items, nil
+}
+
 func (s *service) Detail(ctx context.Context, code string) (domainlocation.Detail, error) {
 	code, err := normalizeCode(code)
 	if err != nil {

@@ -852,6 +852,24 @@ tr:last-child td {
   font-size: 14px;
   min-height: 46px;
 }
+.demo-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--panel-border);
+  background: var(--accent-light);
+  color: var(--accent);
+  font-family: 'SF Mono', ui-monospace, monospace;
+  font-size: 14px;
+  font-weight: 700;
+  min-height: 46px;
+}
+.demo-input::placeholder {
+  color: var(--text-muted);
+  font-family: inherit;
+  font-weight: 400;
+}
 .demo-select:disabled {
   opacity: 0.6;
   cursor: not-allowed;
