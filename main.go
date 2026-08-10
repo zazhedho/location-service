@@ -12,6 +12,7 @@ import (
 
 	importer "location-service/cmd/importer"
 	"location-service/infrastructure/database"
+	"location-service/infrastructure/media"
 	"location-service/internal/bootstrap/locationseed"
 	"location-service/internal/router"
 	"location-service/utils"
@@ -91,10 +92,14 @@ func serve() error {
 	if redisClient != nil {
 		defer redisClient.Close()
 	}
+	storageProvider, err := media.InitStorage()
+	if err != nil {
+		return fmt.Errorf("initialize storage: %w", err)
+	}
 
 	addr := ":" + strings.TrimPrefix(*port, ":")
 	log.Printf("location-service listening on %s", addr)
-	return http.ListenAndServe(addr, router.New(db, redisClient))
+	return http.ListenAndServe(addr, router.New(db, redisClient, storageProvider))
 }
 
 func importData() error {
@@ -165,7 +170,11 @@ func importBoundaries() error {
 	if err := database.Migrate(db); err != nil {
 		return fmt.Errorf("migrate schema: %w", err)
 	}
-	stats, err := importer.ImportBoundaries(context.Background(), db, paths)
+	storageProvider, err := media.RequiredStorage()
+	if err != nil {
+		return err
+	}
+	stats, err := importer.ImportBoundaries(context.Background(), db, storageProvider, paths)
 	if err != nil {
 		return err
 	}

@@ -2,6 +2,7 @@ package importer
 
 import (
 	"bufio"
+	"bytes"
 	"compress/gzip"
 	"context"
 	"database/sql"
@@ -15,10 +16,14 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/lib/pq"
 
+	"location-service/internal/boundary"
 	domainlocation "location-service/internal/domain/location"
+	"location-service/pkg/storage"
 )
 
 type BoundaryImportStats struct {
@@ -33,6 +38,11 @@ type boundaryRow struct {
 	LeafletPath json.RawMessage
 }
 
+const (
+	boundaryUploadWorkers = 8
+	boundaryUploadTimeout = 60 * time.Second
+)
+
 func BoundaryFiles(dir string) ([]string, error) {
 	paths, err := filepath.Glob(filepath.Join(dir, "*-boundaries-*.sql.gz"))
 	if err != nil {
@@ -45,9 +55,12 @@ func BoundaryFiles(dir string) ([]string, error) {
 	return paths, nil
 }
 
-func ImportBoundaries(ctx context.Context, db *sql.DB, paths []string) (BoundaryImportStats, error) {
+func ImportBoundaries(ctx context.Context, db *sql.DB, provider storage.Provider, paths []string) (BoundaryImportStats, error) {
 	if len(paths) == 0 {
 		return BoundaryImportStats{}, errors.New("at least one boundary gzip file is required")
+	}
+	if provider == nil {
+		return BoundaryImportStats{}, errors.New("storage is required for boundary import")
 	}
 
 	tx, err := db.BeginTx(ctx, nil)
@@ -65,12 +78,12 @@ func ImportBoundaries(ctx context.Context, db *sql.DB, paths []string) (Boundary
 			code varchar(13) PRIMARY KEY,
 			centroid_lat double precision NOT NULL,
 			centroid_lng double precision NOT NULL,
-			leaflet_path jsonb NOT NULL
+			object_key text NOT NULL
 		) ON COMMIT DROP`); err != nil {
 		return BoundaryImportStats{}, err
 	}
 
-	stmt, err := tx.PrepareContext(ctx, pq.CopyIn("boundary_import_staging", "code", "centroid_lat", "centroid_lng", "leaflet_path"))
+	stmt, err := tx.PrepareContext(ctx, pq.CopyIn("boundary_import_staging", "code", "centroid_lat", "centroid_lng", "object_key"))
 	if err != nil {
 		return BoundaryImportStats{}, err
 	}
@@ -82,7 +95,15 @@ func ImportBoundaries(ctx context.Context, db *sql.DB, paths []string) (Boundary
 	}()
 
 	stats := BoundaryImportStats{}
+	existingKeys, err := existingBoundaryKeys(ctx, provider)
+	if err != nil {
+		return BoundaryImportStats{}, fmt.Errorf("list existing boundary objects: %w", err)
+	}
 	for _, path := range paths {
+		if err := uploadBoundaryFile(ctx, provider, path, knownCodes, existingKeys); err != nil {
+			return BoundaryImportStats{}, err
+		}
+
 		file, err := os.Open(path)
 		if err != nil {
 			return BoundaryImportStats{}, err
@@ -102,7 +123,8 @@ func ImportBoundaries(ctx context.Context, db *sql.DB, paths []string) (Boundary
 				stats.SkippedUnknown++
 				return nil
 			}
-			if _, err := stmt.ExecContext(ctx, row.Code, row.Coordinates.Latitude, row.Coordinates.Longitude, string(row.LeafletPath)); err != nil {
+			key := boundaryObjectKey(row.Code)
+			if _, err := stmt.ExecContext(ctx, row.Code, row.Coordinates.Latitude, row.Coordinates.Longitude, key); err != nil {
 				return err
 			}
 			stats.Imported++
@@ -130,13 +152,14 @@ func ImportBoundaries(ctx context.Context, db *sql.DB, paths []string) (Boundary
 	closed = true
 
 	if _, err := tx.ExecContext(ctx, `
-		INSERT INTO location_boundaries (code, centroid_lat, centroid_lng, leaflet_path)
-		SELECT code, centroid_lat, centroid_lng, leaflet_path
+		INSERT INTO location_boundaries (code, centroid_lat, centroid_lng, object_key, leaflet_path)
+		SELECT code, centroid_lat, centroid_lng, object_key, NULL
 		FROM boundary_import_staging
 		ON CONFLICT (code) DO UPDATE SET
 			centroid_lat = EXCLUDED.centroid_lat,
 			centroid_lng = EXCLUDED.centroid_lng,
-			leaflet_path = EXCLUDED.leaflet_path,
+			object_key = EXCLUDED.object_key,
+			leaflet_path = NULL,
 			imported_at = now()`); err != nil {
 		return BoundaryImportStats{}, fmt.Errorf("store boundaries: %w", err)
 	}
@@ -144,6 +167,139 @@ func ImportBoundaries(ctx context.Context, db *sql.DB, paths []string) (Boundary
 		return BoundaryImportStats{}, err
 	}
 	return stats, nil
+}
+
+func uploadBoundaryFile(ctx context.Context, provider storage.Provider, path string, knownCodes, existingKeys map[string]struct{}) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	gzipFile, err := gzip.NewReader(file)
+	if err != nil {
+		_ = file.Close()
+		return fmt.Errorf("open gzip %s: %w", path, err)
+	}
+
+	pool := newBoundaryUploadPool(ctx, provider)
+	parseErr := parseBoundarySQL(gzipFile, func(row boundaryRow) error {
+		if _, ok := knownCodes[row.Code]; !ok {
+			return nil
+		}
+		if _, ok := existingKeys[boundaryObjectKey(row.Code)]; ok {
+			return nil
+		}
+		return pool.Submit(row)
+	})
+	gzipErr := gzipFile.Close()
+	fileErr := file.Close()
+	uploadErr := pool.Close()
+	if uploadErr != nil {
+		return fmt.Errorf("upload boundary file %s: %w", path, uploadErr)
+	}
+	if parseErr != nil {
+		return fmt.Errorf("parse boundary file %s: %w", path, parseErr)
+	}
+	if gzipErr != nil {
+		return fmt.Errorf("close gzip %s: %w", path, gzipErr)
+	}
+	if fileErr != nil {
+		return fmt.Errorf("close boundary file %s: %w", path, fileErr)
+	}
+	return nil
+}
+
+type boundaryUploadPool struct {
+	ctx      context.Context
+	cancel   context.CancelFunc
+	provider storage.Provider
+	jobs     chan boundaryRow
+	wg       sync.WaitGroup
+	mu       sync.Mutex
+	err      error
+}
+
+func newBoundaryUploadPool(ctx context.Context, provider storage.Provider) *boundaryUploadPool {
+	poolContext, cancel := context.WithCancel(ctx)
+	pool := &boundaryUploadPool{
+		ctx:      poolContext,
+		cancel:   cancel,
+		provider: provider,
+		jobs:     make(chan boundaryRow, boundaryUploadWorkers),
+	}
+	for worker := 0; worker < boundaryUploadWorkers; worker++ {
+		pool.wg.Add(1)
+		go pool.run()
+	}
+	return pool
+}
+
+func (p *boundaryUploadPool) run() {
+	defer p.wg.Done()
+	for row := range p.jobs {
+		if p.ctx.Err() != nil {
+			return
+		}
+		uploadCtx, cancel := context.WithTimeout(p.ctx, boundaryUploadTimeout)
+		err := uploadBoundaryObject(uploadCtx, p.provider, row)
+		cancel()
+		if err != nil {
+			p.fail(err)
+			return
+		}
+	}
+}
+
+func (p *boundaryUploadPool) Submit(row boundaryRow) error {
+	select {
+	case p.jobs <- row:
+		return nil
+	case <-p.ctx.Done():
+		return p.ctx.Err()
+	}
+}
+
+func (p *boundaryUploadPool) fail(err error) {
+	if err == nil {
+		return
+	}
+	p.mu.Lock()
+	if p.err == nil {
+		p.err = err
+	}
+	p.mu.Unlock()
+}
+
+func (p *boundaryUploadPool) Close() error {
+	close(p.jobs)
+	p.wg.Wait()
+	p.cancel()
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.err
+}
+
+func boundaryObjectKey(code string) string {
+	return "boundaries/" + code + ".json.gz"
+}
+
+func uploadBoundaryObject(ctx context.Context, provider storage.Provider, row boundaryRow) error {
+	payload, err := boundary.EncodeBoundaryPayload(row.LeafletPath)
+	if err != nil {
+		return err
+	}
+	key := boundaryObjectKey(row.Code)
+	if err := provider.Upload(ctx, key, bytes.NewReader(payload), int64(len(payload)), "application/gzip"); err != nil {
+		return fmt.Errorf("upload boundary %s: %w", row.Code, err)
+	}
+	return nil
+}
+
+func existingBoundaryKeys(ctx context.Context, provider storage.Provider) (map[string]struct{}, error) {
+	lister, ok := provider.(storage.PrefixLister)
+	if !ok {
+		return map[string]struct{}{}, nil
+	}
+	return lister.List(ctx, "boundaries/")
 }
 
 func rawCodeSet(ctx context.Context, tx *sql.Tx) (map[string]struct{}, error) {

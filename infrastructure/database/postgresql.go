@@ -9,7 +9,7 @@ import (
 	"sort"
 	"time"
 
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 
 	"location-service/utils"
 )
@@ -28,10 +28,17 @@ func Open() (*sql.DB, error) {
 		)
 	}
 
-	db, err := sql.Open("postgres", dsn)
+	config, err := pq.NewConfig(dsn)
 	if err != nil {
 		return nil, err
 	}
+	// Keep Parse and Bind in one round trip for transaction-pooling proxies.
+	config.BinaryParameters = true
+	connector, err := pq.NewConnectorConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	db := sql.OpenDB(connector)
 	db.SetMaxOpenConns(10)
 	db.SetMaxIdleConns(5)
 	db.SetConnMaxLifetime(5 * time.Minute)

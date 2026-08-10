@@ -24,11 +24,12 @@ import (
 	"location-service/middlewares"
 	"location-service/pkg/messages"
 	"location-service/pkg/response"
+	"location-service/pkg/storage"
 	"location-service/utils"
 )
 
-func New(db *sql.DB, redisClient *redis.Client) http.Handler {
-	repo := locationrepo.NewRepository(db)
+func New(db *sql.DB, redisClient *redis.Client, providers ...storage.Provider) http.Handler {
+	repo := locationrepo.NewRepository(db, providers...)
 	service := locationservice.NewService(repo, redisClient)
 	handler := locationhandler.NewHandler(service)
 	islandHandler := islandhandler.NewHandler(islandservice.NewService(islandrepo.NewRepository(db), redisClient))

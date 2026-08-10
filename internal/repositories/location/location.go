@@ -3,19 +3,27 @@ package location
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
+	"location-service/internal/boundary"
 	domainlocation "location-service/internal/domain/location"
 	interfacelocation "location-service/internal/interfaces/location"
+	"location-service/pkg/storage"
 )
 
 type repository struct {
-	db *sql.DB
+	db      *sql.DB
+	storage storage.Provider
 }
 
-func NewRepository(db *sql.DB) interfacelocation.Repository {
-	return &repository{db: db}
+func NewRepository(db *sql.DB, providers ...storage.Provider) interfacelocation.Repository {
+	var provider storage.Provider
+	if len(providers) > 0 {
+		provider = providers[0]
+	}
+	return &repository{db: db, storage: provider}
 }
 
 func (r *repository) CountStats(ctx context.Context, scope domainlocation.StatsScope) (domainlocation.Stats, error) {
@@ -153,9 +161,10 @@ func (r *repository) GetDetail(ctx context.Context, code string) (domainlocation
 
 func (r *repository) GetBoundary(ctx context.Context, code string) (domainlocation.Boundary, error) {
 	var boundary domainlocation.Boundary
+	var objectKey sql.NullString
 	var path []byte
 	err := r.db.QueryRowContext(ctx, `
-		SELECT b.code, l.name, b.centroid_lat, b.centroid_lng, b.leaflet_path
+		SELECT b.code, l.name, b.centroid_lat, b.centroid_lng, b.object_key, b.leaflet_path
 		FROM location_boundaries b
 		JOIN raw_locations l ON l.code = b.code
 		WHERE b.code = $1`, code).Scan(
@@ -163,6 +172,7 @@ func (r *repository) GetBoundary(ctx context.Context, code string) (domainlocati
 		&boundary.Name,
 		&boundary.Latitude,
 		&boundary.Longitude,
+		&objectKey,
 		&path,
 	)
 	if err != nil {
@@ -171,8 +181,36 @@ func (r *repository) GetBoundary(ctx context.Context, code string) (domainlocati
 		}
 		return domainlocation.Boundary{}, err
 	}
+	if objectKey.Valid && objectKey.String != "" {
+		if r.storage == nil {
+			return domainlocation.Boundary{}, fmt.Errorf("boundary storage is not configured")
+		}
+		path, err = loadBoundaryPayload(ctx, r.storage, objectKey.String)
+		if err != nil {
+			return domainlocation.Boundary{}, err
+		}
+	}
+	if len(path) == 0 {
+		return domainlocation.Boundary{}, domainlocation.ErrBoundaryNotFound
+	}
 	boundary.LeafletPath = path
 	return boundary, nil
+}
+
+func loadBoundaryPayload(ctx context.Context, provider storage.Provider, key string) ([]byte, error) {
+	reader, err := provider.Download(ctx, key)
+	if err != nil {
+		if errors.Is(err, storage.ErrObjectNotFound) {
+			return nil, domainlocation.ErrBoundaryNotFound
+		}
+		return nil, err
+	}
+	defer reader.Close()
+	payload, err := boundary.DecodeBoundaryPayload(reader)
+	if err != nil {
+		return nil, err
+	}
+	return payload, nil
 }
 
 func levelName(level int) string {

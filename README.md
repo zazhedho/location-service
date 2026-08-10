@@ -109,7 +109,8 @@ The frontend is a lightweight console for trying the API directly from the brows
 ├── cmd/importer/                 # Bulk import command logic
 ├── data/                         # Bundled seed data
 ├── frontend/                     # Static frontend app and frontend Dockerfile
-├── infrastructure/database/      # PostgreSQL and Redis connections
+├── infrastructure/database/      # PostgreSQL and Redis connections only
+├── infrastructure/media/         # Object-storage environment wiring
 ├── internal/bootstrap/           # Startup seed orchestration
 ├── internal/cache/location/      # Redis cache helpers and keys
 ├── internal/domain/location/     # Location entity and import stats
@@ -122,6 +123,8 @@ The frontend is a lightweight console for trying the API directly from the brows
 ├── migrations/                   # SQL schema
 ├── pkg/messages/                 # Shared response messages
 ├── pkg/response/                 # Shared response envelope
+├── pkg/storage/                  # Storage contract and S3-compatible adapter
+├── internal/boundary/             # Boundary payload codec
 ├── postman/                      # Postman collection
 ├── utils/                        # Env helpers
 └── main.go                       # Command entrypoint
@@ -188,6 +191,26 @@ DB_SSLMODE=disable
 ```
 
 Seed and import variables are available in `.env.example`.
+
+### Object storage
+
+Boundary payloads are stored as gzip objects instead of large PostgreSQL JSONB values. The reusable contract and S3-compatible adapter live under `pkg/storage`; `infrastructure/media` only reads environment variables and initializes it. `infrastructure/database` remains limited to database and Redis connections.
+
+Supported `STORAGE_PROVIDER` values are `minio`, `r2`, and `s3`. Supabase Storage uses `STORAGE_PROVIDER=s3` with its S3 endpoint, for example:
+
+```env
+STORAGE_PROVIDER=s3
+STORAGE_ENDPOINT=https://project-ref.storage.supabase.co/storage/v1/s3
+STORAGE_ACCESS_KEY=example-access-key
+STORAGE_SECRET_KEY=example-secret-key
+STORAGE_BUCKET_NAME=location-assets
+STORAGE_BASE_URL=https://project-ref.supabase.co/storage/v1/object/public/location-assets
+STORAGE_REGION=project-region
+STORAGE_USE_SSL=true
+STORAGE_FORCE_PATH_STYLE=true
+```
+
+Leave `STORAGE_PROVIDER` empty when boundary storage is not configured. `import-boundaries` requires a configured provider and writes deterministic keys such as `boundaries/11.01.json.gz`; existing legacy JSONB rows remain readable during migration.
 
 `AUTO_SEED=true` runs during `serve`. It checks `raw_locations`; if the table is empty, it imports the configured seed file in one transaction using PostgreSQL `COPY`. Startup skips seeding when data already exists.
 
