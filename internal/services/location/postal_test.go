@@ -2,6 +2,7 @@ package location
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	domainlocation "location-service/internal/domain/location"
@@ -62,5 +63,14 @@ func TestPostalCodesReturnsEmptyArrayWhenNoMatches(t *testing.T) {
 	}
 	if items == nil || len(items) != 0 {
 		t.Fatalf("items=%#v, want non-nil empty array", items)
+	}
+}
+
+func TestSearchRejectsOverlongQuery(t *testing.T) {
+	service := NewService(&postalRepositoryStub{})
+
+	_, err := service.Search(context.Background(), strings.Repeat("a", 101), "")
+	if err == nil || err.Error() != "q must not exceed 100 characters" {
+		t.Fatalf("overlong query error = %v; want length validation", err)
 	}
 }

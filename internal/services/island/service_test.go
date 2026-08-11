@@ -51,6 +51,19 @@ func TestListIslandsDefaultsAndValidation(t *testing.T) {
 	}
 }
 
+func TestListIslandsRejectsPageBeyondMaximum(t *testing.T) {
+	service := NewService(&repositoryStub{})
+
+	_, err := service.ListIslands(context.Background(), "", "1001", "")
+	var validationErr *ValidationError
+	if !errors.As(err, &validationErr) {
+		t.Fatalf("page validation error = %v; want ValidationError", err)
+	}
+	if validationErr.Error() != "page must be a number between 1 and 1000" {
+		t.Fatalf("page validation message = %q", validationErr.Error())
+	}
+}
+
 func TestGetIslandMapsMissingRow(t *testing.T) {
 	service := NewService(&repositoryStub{findErr: sql.ErrNoRows})
 	_, err := service.GetIsland(context.Background(), "11.01.40001")

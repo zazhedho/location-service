@@ -100,6 +100,7 @@ func isClientError(message string) bool {
 		"regency_code is required",
 		"district_code is required",
 		"q is required",
+		"q must not exceed 100 characters",
 		"limit must be a number between 1 and 500",
 		"postal_code is invalid",
 		"code is required",

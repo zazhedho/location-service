@@ -18,6 +18,7 @@ import (
 const (
 	DefaultPage  = 1
 	DefaultLimit = 50
+	MaxPage      = 1000
 	MaxLimit     = 500
 )
 
@@ -110,8 +111,8 @@ func parsePage(raw string) (int, error) {
 		return DefaultPage, nil
 	}
 	value, err := parseDigits(raw)
-	if err != nil || value < 1 {
-		return 0, invalid("page must be a number greater than 0")
+	if err != nil || value < 1 || value > MaxPage {
+		return 0, invalid("page must be a number between 1 and 1000")
 	}
 	return value, nil
 }

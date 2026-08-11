@@ -6,6 +6,7 @@ import (
 	"errors"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/redis/go-redis/v9"
 
@@ -113,6 +114,9 @@ func (s *service) Search(ctx context.Context, query string, limit string) ([]dom
 	query = strings.TrimSpace(query)
 	if query == "" {
 		return nil, errors.New("q is required")
+	}
+	if utf8.RuneCountInString(query) > 100 {
+		return nil, errors.New("q must not exceed 100 characters")
 	}
 	parsedLimit := 50
 	if raw := strings.TrimSpace(limit); raw != "" {

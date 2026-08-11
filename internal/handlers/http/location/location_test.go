@@ -140,3 +140,17 @@ func TestPostalCodesRejectsInvalidFormat(t *testing.T) {
 		t.Fatalf("status=%d body=%s", recorder.Code, recorder.Body.String())
 	}
 }
+
+func TestSearchRejectsOverlongQuery(t *testing.T) {
+	handler := NewHandler(locationservice.NewService(handlerRepository{}))
+	request := httptest.NewRequest(http.MethodGet, "/api/locations/search?q="+strings.Repeat("a", 101), nil)
+	recorder := httptest.NewRecorder()
+
+	handler.Search(recorder, request)
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	if !strings.Contains(recorder.Body.String(), "q must not exceed 100 characters") {
+		t.Fatalf("body=%s", recorder.Body.String())
+	}
+}
