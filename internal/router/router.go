@@ -51,7 +51,8 @@ func New(db *sql.DB, redisClient *redis.Client, providers ...storage.Provider) h
 	mux.HandleFunc("GET /api/locations/{code}", handler.Detail)
 	mux.HandleFunc("GET /api/islands", islandHandler.List)
 	mux.HandleFunc("GET /api/islands/{code}", islandHandler.Detail)
-	return middlewares.CORS(utils.WithRequestID(mux))
+	limited := middlewares.RateLimit(redisClient, mux)
+	return middlewares.CORS(utils.WithRequestID(limited))
 }
 
 func health(db *sql.DB) http.HandlerFunc {

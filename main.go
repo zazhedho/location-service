@@ -103,7 +103,16 @@ func serve() error {
 
 	addr := ":" + strings.TrimPrefix(*port, ":")
 	log.Printf("location-service listening on %s", addr)
-	return http.ListenAndServe(addr, router.New(db, redisClient, storageProvider))
+	server := &http.Server{
+		Addr:              addr,
+		Handler:           router.New(db, redisClient, storageProvider),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    1 << 20,
+	}
+	return server.ListenAndServe()
 }
 
 func importData() error {
