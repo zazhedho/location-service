@@ -270,7 +270,7 @@ async function selectLocation(item, node = null) {
     if (detail.has_boundary) {
       setMapStatus(`Loading boundary for ${detail.name || name}…`, 'loading')
       try {
-        boundary = await request(`/api/locations/${encodeURIComponent(code)}/boundary`)
+        boundary = await request(`/api/locations/${encodeURIComponent(code)}/boundary`, {}, true)
       } catch (error) {
         boundaryError = error
       }
@@ -480,9 +480,9 @@ function fetchChildren(item) {
   const p = codeFormatParams()
   const code = item.full_code || item.code
   switch (item.level) {
-    case 'province': return request('/api/locations/regencies', { province_code: code, ...p })
-    case 'regency': return request('/api/locations/districts', { regency_code: code, ...p })
-    case 'district': return request('/api/locations/villages', { district_code: code, ...p })
+    case 'province': return request('/api/locations/regencies', { province_code: code, ...p }, true)
+    case 'regency': return request('/api/locations/districts', { regency_code: code, ...p }, true)
+    case 'district': return request('/api/locations/villages', { district_code: code, ...p }, true)
     default: return Promise.resolve([])
   }
 }
@@ -627,7 +627,7 @@ async function loadTree() {
   els.treeRoot.appendChild(loading)
 
   try {
-    const provinces = await request('/api/locations/provinces')
+    const provinces = await request('/api/locations/provinces', {}, true)
     els.treeRoot.removeChild(loading)
     if (!state.statsLoaded) els.provinceCount.textContent = provinces.length
     els.treeRowCount.textContent = provinces.length
