@@ -256,7 +256,7 @@ async function selectLocation(item, node = null) {
   setMapMessage('Loading location…', 'loading')
 
   try {
-    const detail = await request(`/api/locations/${encodeURIComponent(code)}`)
+    const detail = await request(`/api/locations/${encodeURIComponent(code)}`, {}, true)
     if (selectionId !== state.mapSelectionId) return
     if (!detail || Array.isArray(detail) || typeof detail !== 'object') throw new Error('Location detail unavailable')
     if (detail.postal_code && !item.postal_code) {
@@ -480,9 +480,9 @@ function fetchChildren(item) {
   const p = codeFormatParams()
   const code = item.full_code || item.code
   switch (item.level) {
-    case 'province': return request('/api/locations/regencies', { province_code: code, ...p }, true)
-    case 'regency': return request('/api/locations/districts', { regency_code: code, ...p }, true)
-    case 'district': return request('/api/locations/villages', { district_code: code, ...p }, true)
+    case 'province': return request('/api/locations/regencies', { province_code: code, ...p })
+    case 'regency': return request('/api/locations/districts', { regency_code: code, ...p })
+    case 'district': return request('/api/locations/villages', { district_code: code, ...p })
     default: return Promise.resolve([])
   }
 }
@@ -627,7 +627,7 @@ async function loadTree() {
   els.treeRoot.appendChild(loading)
 
   try {
-    const provinces = await request('/api/locations/provinces', {}, true)
+    const provinces = await request('/api/locations/provinces')
     els.treeRoot.removeChild(loading)
     if (!state.statsLoaded) els.provinceCount.textContent = provinces.length
     els.treeRowCount.textContent = provinces.length
