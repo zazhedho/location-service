@@ -701,13 +701,18 @@ function renderBreadcrumb(item = null, node = null) {
     } else {
       button.addEventListener('click', () => {
         selectLocation(entry.item, entry.node)
-        entry.node?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        scrollTreeNodeIntoView(entry.node)
       })
     }
 
     wrapper.appendChild(button)
     els.breadcrumb.appendChild(wrapper)
   })
+}
+
+function scrollTreeNodeIntoView(node) {
+  const row = node?.querySelector(':scope > .tree-row')
+  row?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
 }
 
 // ── Search ──
@@ -790,7 +795,7 @@ async function navigateToBrowse(item) {
   const target = document.querySelector(`.tree-node[data-code="${fc}"]`)
   if (target) {
     target.querySelector('.tree-row').style.background = 'var(--accent-light)'
-    target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    scrollTreeNodeIntoView(target)
     setTimeout(() => target.querySelector('.tree-row').style.background = '', 2000)
   }
 }
