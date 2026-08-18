@@ -1,3 +1,10 @@
+const docsBaseUrl = window.location.origin
+
+document.querySelector('[data-doc-base-url]')?.replaceChildren(docsBaseUrl)
+document.querySelectorAll('pre code').forEach((code) => {
+  code.textContent = code.textContent.replaceAll('__BASE_URL__', docsBaseUrl)
+})
+
 // Copy code buttons
 const copyButtons = []
 document.querySelectorAll('pre').forEach((block) => {
@@ -24,7 +31,7 @@ document.querySelectorAll('pre').forEach((block) => {
 
 const curlButtons = []
 document.querySelectorAll('[data-curl-path]').forEach((button) => {
-  const curl = `curl '${new URL(button.dataset.curlPath, window.location.origin).href}'`
+  const curl = `curl '${new URL(button.dataset.curlPath, docsBaseUrl).href}'`
   button.addEventListener('click', async () => {
     await navigator.clipboard.writeText(curl)
     button.textContent = docsLanguage === 'id' ? 'Tersalin' : 'Copied!'
@@ -165,7 +172,7 @@ const demoVillage = document.getElementById('demo-village')
 const demoPostalCode = document.getElementById('demo-postal-code')
 const demoResponse = document.getElementById('demo-response')
 const demoEndpointUrl = document.getElementById('demo-endpoint-url')
-const demoBaseUrl = window.location.origin
+const demoBaseUrl = docsBaseUrl
 let docsLanguage = 'id'
 let demoRequestId = 0
 let demoVillageItems = []

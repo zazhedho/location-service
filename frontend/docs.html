@@ -63,7 +63,7 @@
         <p class="lead" data-i18n="heroLead">Gunakan API ini untuk menampilkan provinsi, kabupaten/kota, kecamatan, dan kelurahan/desa secara berjenjang (cascading).</p>
         <div class="base-url">
           <span data-i18n="baseUrl">Base URL</span>
-          <code>https://location-service-do.vercel.app</code>
+          <code data-doc-base-url>Loading...</code>
         </div>
       </section>
 
@@ -290,7 +290,7 @@ GET /api/locations/{code}/boundary</code></pre>
         </div>
 
         <article class="example active" id="example-javascript" role="tabpanel" aria-labelledby="tab-javascript" data-example-panel="javascript">
-          <pre><code>const BASE_URL = 'https://location-service-do.vercel.app'
+          <pre><code>const BASE_URL = '__BASE_URL__'
 
 async function getProvinces() {
   const response = await fetch(`${BASE_URL}/api/locations/provinces`)
@@ -331,7 +331,7 @@ async function getRegencies(provinceCode: string): Promise&lt;LocationItem[]&gt;
         <article class="example" id="example-react" role="tabpanel" aria-labelledby="tab-react" data-example-panel="react" hidden>
           <pre><code>import { useEffect, useState } from 'react'
 
-const BASE_URL = 'https://location-service-do.vercel.app'
+const BASE_URL = '__BASE_URL__'
 
 async function getJSON(path) {
   const response = await fetch(`${BASE_URL}${path}`)
@@ -378,7 +378,7 @@ type Response struct {
 }
 
 func main() {
-	res, err := http.Get("https://location-service-do.vercel.app/api/locations/provinces")
+	res, err := http.Get("__BASE_URL__/api/locations/provinces")
 	if err != nil {
 		panic(err)
 	}
@@ -397,7 +397,7 @@ func main() {
           <p class="note" data-i18n="laravelNote">Memerlukan Laravel HTTP Client.</p>
           <pre><code>use Illuminate\Support\Facades\Http;
 
-$response = Http::get('https://location-service-do.vercel.app/api/locations/provinces');
+$response = Http::get('__BASE_URL__/api/locations/provinces');
 $json = $response->json();
 
 if (! $json['status']) {
@@ -412,7 +412,7 @@ $provinces = $json['data'];</code></pre>
           <pre><code>import json
 from urllib.request import urlopen
 
-base_url = 'https://location-service-do.vercel.app'
+base_url = '__BASE_URL__'
 with urlopen(f'{base_url}/api/locations/provinces', timeout=10) as response:
     payload = json.load(response)
 
