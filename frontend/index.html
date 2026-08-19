@@ -226,63 +226,48 @@
             </div>
           </div>
 
-          <!-- SELECTION SUMMARY BANNER (CARD WILAYAH TERPILIH) -->
+          <!-- COMPACT SELECTION SUMMARY STRIP -->
           <section class="selection-summary is-hidden" id="selectionSummary" aria-label="Informasi Wilayah Terpilih" data-level="province">
             <div class="selection-accent-bar"></div>
             
-            <div class="selection-content-wrapper">
-              <!-- Left side: Identity & Metadata -->
-              <div class="selection-info-col">
-                <div class="selection-top-bar">
-                  <div class="selection-badge-group">
-                    <span class="selection-level-pill" id="selectionLevelPill">
-                      <span class="selection-level-icon" id="selectionIcon">🗺️</span>
-                      <span class="selection-level" id="selectionLevel">PROVINSI</span>
-                    </span>
-                    <span class="selection-status-badge" id="selectionMapIndicator">
-                      <span class="status-pulse-dot"></span>
-                      <span id="selectionMapStatusText">Tersinkronisasi ke Peta</span>
-                    </span>
-                  </div>
-
-                  <div class="selection-actions">
-                    <button class="selection-action-btn" id="copySelectionCodeBtn" type="button" title="Salin kode wilayah" aria-label="Salin kode wilayah">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-                      <span>Salin Kode</span>
-                    </button>
-                    <button class="selection-close-btn" id="closeSelectionBtn" type="button" title="Tutup info wilayah" aria-label="Tutup info wilayah">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
-                    </button>
-                  </div>
-                </div>
-
-                <div class="selection-heading-group">
-                  <h2 class="selection-title" id="selectionTitle">Indonesia</h2>
-                </div>
-
-                <div class="selection-tags-row" id="selectionSubtitle">
-                  <div class="selection-tag selection-tag-code" title="Kode Administratif Wilayah">
+            <div class="selection-compact-row">
+              <!-- Left side: Icon, Level, Name, Codes -->
+              <div class="selection-main-info">
+                <span class="selection-level-pill" id="selectionLevelPill">
+                  <span class="selection-level-icon" id="selectionIcon">🗺️</span>
+                  <span class="selection-level" id="selectionLevel">PROVINSI</span>
+                </span>
+                
+                <h2 class="selection-title" id="selectionTitle">Indonesia</h2>
+                
+                <div class="selection-tags-inline" id="selectionSubtitle">
+                  <span class="selection-tag selection-tag-code" title="Kode Administratif Wilayah">
                     <span class="tag-label">Kode:</span>
                     <code id="selectionCode">—</code>
-                  </div>
+                  </span>
                   
-                  <div class="selection-tag selection-tag-postal" id="selectionPostalToken" hidden title="Kode Pos Wilayah">
+                  <span class="selection-tag selection-tag-postal" id="selectionPostalToken" hidden title="Kode Pos Wilayah">
                     <span class="tag-label">Kode Pos:</span>
                     <code id="selectionPostal">—</code>
-                  </div>
+                  </span>
                 </div>
-
-                <p class="selection-status-msg" id="selectionStatus" hidden></p>
               </div>
 
-              <!-- Right side: Scoped Sub-region Breakdown -->
-              <div class="selection-metrics-col" id="selectionMetricsCol">
-                <div class="metrics-col-header">
-                  <span class="metrics-col-title">Cakupan Wilayah Bawahan</span>
-                </div>
-                <div class="selection-metrics-grid" id="selectionMetrics"></div>
+              <!-- Center/Right: Inline Scoped Counts -->
+              <div class="selection-metrics-inline" id="selectionMetrics"></div>
+
+              <!-- Right: Actions -->
+              <div class="selection-actions">
+                <button class="selection-action-btn" id="copySelectionCodeBtn" type="button" title="Salin kode wilayah" aria-label="Salin kode wilayah">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                  <span>Salin</span>
+                </button>
+                <button class="selection-close-btn" id="closeSelectionBtn" type="button" title="Tutup seleksi wilayah" aria-label="Tutup seleksi wilayah">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+                </button>
               </div>
             </div>
+            <p class="selection-status-msg" id="selectionStatus" hidden></p>
           </section>
 
           <!-- CONTENT GRID: TREE + MAP -->

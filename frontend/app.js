@@ -449,12 +449,10 @@ function scopedStatsParams(item) {
 function scopedMetric(label, value, tone) {
   const icon = tone === 'regency' ? '🏙️' : tone === 'district' ? '🏘️' : '🏡'
   return `
-    <div class="selection-metric selection-metric-${tone}">
+    <div class="selection-metric-chip selection-metric-${tone}">
       <span class="metric-icon-mini">${icon}</span>
-      <div class="metric-detail">
-        <span class="metric-title">${label}</span>
-        <strong class="metric-number">${formatCount(value)}</strong>
-      </div>
+      <span class="metric-title">${label}:</span>
+      <strong class="metric-number">${formatCount(value)}</strong>
     </div>
   `
 }

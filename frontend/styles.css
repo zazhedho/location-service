@@ -1043,17 +1043,20 @@ a:focus-visible {
 /* ==========================================================================
    SELECTION SUMMARY BANNER (CARD WILAYAH TERPILIH)
    ========================================================================== */
+/* ==========================================================================
+   COMPACT SELECTION SUMMARY BAR (WILAYAH TERPILIH)
+   ========================================================================== */
 .selection-summary {
   position: relative;
   background: var(--surface-card);
   border: 1px solid var(--border-medium);
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-md);
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px var(--accent-glow);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  animation: selectionSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  transition: all var(--transition-normal);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  animation: selectionSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all var(--transition-fast);
 }
 
 .selection-summary.is-hidden {
@@ -1063,23 +1066,21 @@ a:focus-visible {
 @keyframes selectionSlideIn {
   from {
     opacity: 0;
-    transform: translateY(-12px) scale(0.99);
+    transform: translateY(-6px);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 
-/* Dynamic Level Accent Glow & Top Border */
 .selection-accent-bar {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
+  height: 2.5px;
   background: var(--accent-gradient);
-  transition: background var(--transition-normal);
 }
 
 .selection-summary[data-level="province"] .selection-accent-bar {
@@ -1095,48 +1096,37 @@ a:focus-visible {
   background: linear-gradient(90deg, #d97706 0%, #f59e0b 100%);
 }
 
-.selection-content-wrapper {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-  gap: 24px;
-  padding: 18px 24px;
-}
-
-/* Left Column: Identity & Info */
-.selection-info-col {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-width: 0;
-}
-
-.selection-top-bar {
+.selection-compact-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
+  padding: 8px 14px;
 }
 
-.selection-badge-group {
+/* Left side main info */
+.selection-main-info {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  min-width: 0;
   flex-wrap: wrap;
 }
 
 .selection-level-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
+  gap: 5px;
+  padding: 2px 8px;
   border-radius: var(--radius-full);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.6px;
+  letter-spacing: 0.5px;
   background: var(--accent-bg);
   color: var(--accent-light);
   border: 1px solid var(--accent-border);
+  flex-shrink: 0;
 }
 
 .selection-summary[data-level="province"] .selection-level-pill {
@@ -1161,121 +1151,46 @@ a:focus-visible {
 }
 
 .selection-level-icon {
-  font-size: 13px;
-}
-
-.selection-status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 8px;
-  border-radius: var(--radius-full);
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--success);
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.25);
-}
-
-.status-pulse-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: var(--radius-full);
-  background: var(--success);
-  box-shadow: 0 0 8px var(--success-glow);
-  animation: pulsePing 2s infinite;
-}
-
-.selection-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.selection-action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 28px;
-  padding: 0 10px;
-  border-radius: var(--radius-full);
-  background: var(--surface-2);
-  border: 1px solid var(--border-subtle);
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-secondary);
-  transition: all var(--transition-fast);
-}
-
-.selection-action-btn:hover {
-  background: var(--accent-bg);
-  color: var(--accent-light);
-  border-color: var(--accent-border);
-  transform: translateY(-1px);
-}
-
-.selection-close-btn {
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  display: grid;
-  place-items: center;
-  border-radius: var(--radius-full);
-  background: var(--surface-2);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-muted);
-  transition: all var(--transition-fast);
-}
-
-.selection-close-btn:hover {
-  background: rgba(239, 68, 68, 0.15);
-  color: var(--danger);
-  border-color: rgba(239, 68, 68, 0.3);
-}
-
-.selection-heading-group {
-  margin-top: 2px;
+  font-size: 12px;
 }
 
 .selection-title {
   font-family: var(--font-display);
-  font-size: 24px;
+  font-size: 15px;
   font-weight: 800;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.3px;
   color: var(--text-primary);
   line-height: 1.2;
-  word-break: break-word;
+  white-space: nowrap;
 }
 
-.selection-tags-row {
-  display: flex;
+.selection-tags-inline {
+  display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 4px;
+  gap: 6px;
 }
 
 .selection-tag {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: var(--radius-sm);
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
   background: var(--surface-2);
   border: 1px solid var(--border-subtle);
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-secondary);
 }
 
 .selection-tag .tag-label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   color: var(--text-muted);
 }
 
 .selection-tag code {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--text-primary);
 }
@@ -1293,88 +1208,49 @@ a:focus-visible {
   color: var(--color-dist);
 }
 
-.selection-status-msg {
-  font-size: 12px;
-  color: var(--warning);
-  margin-top: 4px;
-}
-
-/* Right Column: Scoped Sub-region Breakdown */
-.selection-metrics-col {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 8px;
-  padding-left: 20px;
-  border-left: 1px solid var(--border-subtle);
-}
-
-.metrics-col-header {
+/* Center metrics inline */
+.selection-metrics-inline {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-}
-
-.metrics-col-title {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: var(--text-dim);
-}
-
-.selection-metrics-grid {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  gap: 6px;
+  margin-left: auto;
   flex-wrap: wrap;
 }
 
-.selection-metric {
-  flex: 1;
-  min-width: 100px;
-  display: flex;
+.selection-metric-chip {
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: var(--radius-sm);
   background: var(--surface-2);
   border: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-sm);
+  font-size: 11px;
+  color: var(--text-secondary);
   transition: all var(--transition-fast);
 }
 
-.selection-metric:hover {
-  transform: translateY(-2px);
+.selection-metric-chip:hover {
   border-color: var(--border-medium);
-  box-shadow: var(--shadow-md);
+  background: var(--surface-3);
 }
 
 .metric-icon-mini {
-  font-size: 18px;
+  font-size: 12px;
   line-height: 1;
-}
-
-.metric-detail {
-  display: flex;
-  flex-direction: column;
 }
 
 .metric-title {
   font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
+  font-weight: 600;
   color: var(--text-muted);
 }
 
 .metric-number {
   font-family: var(--font-display);
-  font-size: 17px;
+  font-size: 12px;
   font-weight: 800;
-  line-height: 1.1;
   color: var(--text-primary);
-  margin-top: 1px;
 }
 
 .selection-metric-regency .metric-number { color: var(--color-reg); }
@@ -1382,15 +1258,69 @@ a:focus-visible {
 .selection-metric-village .metric-number { color: var(--color-vil); }
 
 .selection-empty-metrics {
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
   background: var(--surface-2);
   border: 1px dashed var(--border-subtle);
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-muted);
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
+}
+
+/* Right Actions */
+.selection-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.selection-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: var(--radius-full);
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.selection-action-btn:hover {
+  background: var(--accent-bg);
+  color: var(--accent-light);
+  border-color: var(--accent-border);
+}
+
+.selection-close-btn {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  transition: all var(--transition-fast);
+}
+
+.selection-close-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.selection-status-msg {
+  font-size: 11px;
+  color: var(--warning);
+  padding: 0 14px 6px;
 }
 
 /* ==========================================================================
