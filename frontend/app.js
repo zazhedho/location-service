@@ -8,8 +8,10 @@ const state = {
   statsAnimated: false,
   lastResponse: {},
   map: null,
+  mapTileLayer: null,
   mapLayers: null,
   mapSelectionId: 0,
+  currentTheme: localStorage.getItem('location-service-theme') || 'dark',
 }
 
 const els = {
@@ -61,11 +63,48 @@ const els = {
   copyResponse: document.getElementById('copyResponse'),
   responseDrawer: document.getElementById('responseDrawer'),
   responseDrawerToggle: document.getElementById('responseDrawerToggle'),
+  drawerStatusPill: document.getElementById('drawerStatusPill'),
   toast: document.getElementById('toast'),
   openSidebar: document.getElementById('openSidebar'),
   collapseSidebar: document.getElementById('collapseSidebar'),
   sidebarOverlay: document.getElementById('sidebarOverlay'),
   sidebar: document.getElementById('sidebar'),
+  themeToggle: document.getElementById('themeToggle'),
+}
+
+// ── Theme Management ──
+
+function applyTheme(theme) {
+  state.currentTheme = theme
+  document.documentElement.setAttribute('data-theme', theme)
+  localStorage.setItem('location-service-theme', theme)
+
+  if (els.themeToggle) {
+    const label = els.themeToggle.querySelector('.theme-label')
+    if (label) {
+      label.textContent = theme === 'dark' ? 'Tema Gelap' : 'Tema Terang'
+    }
+  }
+
+  // Update Leaflet tile layer if map is initialized
+  if (state.map && state.mapTileLayer) {
+    state.map.removeLayer(state.mapTileLayer)
+    const tileUrl = theme === 'dark'
+      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+      : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+
+    state.mapTileLayer = window.L.tileLayer(tileUrl, {
+      attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; OpenStreetMap contributors',
+      maxZoom: 19,
+      subdomains: 'abcd',
+    }).addTo(state.map)
+  }
+}
+
+function toggleTheme() {
+  const nextTheme = state.currentTheme === 'dark' ? 'light' : 'dark'
+  applyTheme(nextTheme)
+  showToast(`Beralih ke ${nextTheme === 'dark' ? 'Tema Gelap' : 'Tema Terang'}`)
 }
 
 // ── Utilities ──
@@ -74,13 +113,19 @@ function apiBaseUrl() {
   return state.apiBaseUrl.replace(/\/+$/, '')
 }
 
-function setLastResponse(requestLine, payload) {
+function setLastResponse(requestLine, payload, statusCode = 200) {
   state.lastResponse = payload
   const url = requestLine.replace(/^GET\s+/, '')
   els.responseMethod.textContent = requestLine
   els.responseMethod.href = url
   els.responseMethod.setAttribute('aria-label', `Open ${requestLine}`)
   els.responseOutput.textContent = JSON.stringify(payload, null, 2)
+
+  if (els.drawerStatusPill) {
+    els.drawerStatusPill.textContent = `${statusCode} ${statusCode === 200 ? 'OK' : 'Error'}`
+    els.drawerStatusPill.style.color = statusCode === 200 ? 'var(--success)' : 'var(--danger)'
+  }
+
   els.responseDrawer.classList.add('has-data')
   if (!els.responseDrawer.classList.contains('open')) {
     els.responseDrawer.classList.add('has-unread-response')
@@ -91,7 +136,7 @@ function showToast(msg) {
   els.toast.textContent = msg
   els.toast.classList.add('show')
   clearTimeout(showToast.t)
-  showToast.t = setTimeout(() => els.toast.classList.remove('show'), 2800)
+  showToast.t = setTimeout(() => els.toast.classList.remove('show'), 2600)
 }
 
 async function request(path, params = {}, silent = false) {
@@ -99,15 +144,21 @@ async function request(path, params = {}, silent = false) {
   Object.entries(params).forEach(([k, v]) => {
     if (v !== undefined && v !== null && String(v).trim() !== '') url.searchParams.set(k, String(v).trim())
   })
-  const res = await fetch(url.toString(), { headers: { Accept: 'application/json' } })
-  const payload = await res.json().catch(() => ({}))
-  if (!silent) setLastResponse(`GET ${url.toString()}`, payload)
-  if (!res.ok || payload.status === false) {
-    const error = new Error(payload?.error?.message || payload?.message || `Request failed (${res.status})`)
-    error.status = res.status
-    throw error
+
+  try {
+    const res = await fetch(url.toString(), { headers: { Accept: 'application/json' } })
+    const payload = await res.json().catch(() => ({}))
+    if (!silent) setLastResponse(`GET ${url.toString()}`, payload, res.status)
+    if (!res.ok || payload.status === false) {
+      const error = new Error(payload?.error?.message || payload?.message || `Request gagal (${res.status})`)
+      error.status = res.status
+      throw error
+    }
+    return Array.isArray(payload.data) ? payload.data : payload.data || []
+  } catch (err) {
+    if (!silent) setLastResponse(`GET ${url.toString()}`, { error: err.message }, err.status || 500)
+    throw err
   }
-  return Array.isArray(payload.data) ? payload.data : payload.data || []
 }
 
 function setMapStatus(message, kind = '') {
@@ -116,9 +167,15 @@ function setMapStatus(message, kind = '') {
 }
 
 function setMapMessage(message, kind = '') {
-  els.mapMessage.textContent = message
-  els.mapMessage.dataset.state = kind
-  els.mapMessage.hidden = !message
+  if (message) {
+    els.mapMessage.innerHTML = `
+      <div class="map-empty-icon">${kind === 'error' ? '⚠️' : '📍'}</div>
+      <strong>${escapeHTML(message)}</strong>
+    `
+    els.mapMessage.hidden = false
+  } else {
+    els.mapMessage.hidden = true
+  }
 }
 
 function clearMapLayers() {
@@ -128,23 +185,33 @@ function clearMapLayers() {
 function ensureMap() {
   if (state.map) return state.map
   if (!window.L) {
-    setMapStatus('Map library unavailable.', 'error')
-    setMapMessage('Map library could not be loaded.', 'error')
+    setMapStatus('Library peta tidak tersedia.', 'error')
+    setMapMessage('Library Leaflet tidak dapat dimuat.', 'error')
     return null
   }
 
   try {
-    const map = window.L.map(els.locationMap).setView([-2.5, 118], 5)
-    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors',
+    const map = window.L.map(els.locationMap, {
+      zoomControl: true,
+      fadeAnimation: true,
+    }).setView([-2.5489, 118.0149], 5)
+
+    const tileUrl = state.currentTheme === 'dark'
+      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+      : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+
+    state.mapTileLayer = window.L.tileLayer(tileUrl, {
+      attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; OpenStreetMap contributors',
       maxZoom: 19,
+      subdomains: 'abcd',
     }).addTo(map)
+
     state.mapLayers = window.L.layerGroup().addTo(map)
     state.map = map
     return map
   } catch (error) {
-    setMapStatus('Map unavailable.', 'error')
-    setMapMessage(error.message || 'Map could not be initialized.', 'error')
+    setMapStatus('Peta tidak tersedia.', 'error')
+    setMapMessage(error.message || 'Peta tidak dapat diinisialisasi.', 'error')
     return null
   }
 }
@@ -187,11 +254,18 @@ function escapeHTML(value) {
 }
 
 function locationPopup(location) {
-  const name = escapeHTML(location.name || 'Selected location')
-  const level = escapeHTML(location.level)
+  const name = escapeHTML(location.name || 'Wilayah Terpilih')
+  const level = escapeHTML(location.level ? location.level.toUpperCase() : '')
   const code = escapeHTML(location.full_code || location.code)
   const postalCode = escapeHTML(location.postal_code)
-  return `<strong>${name}</strong>${level ? `<br><span>${level}</span>` : ''}${code ? `<br><code>${code}</code>` : ''}${postalCode ? `<br><span>Postal code: ${postalCode}</span>` : ''}`
+  return `
+    <div style="padding: 4px; font-family: var(--font-sans);">
+      <div style="font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase;">${level}</div>
+      <strong style="font-size: 15px; display: block; margin: 2px 0 6px; color: var(--text-primary);">${name}</strong>
+      ${code ? `<div style="font-size: 12px; margin-bottom: 2px;">Kode: <code style="padding: 2px 5px; background: rgba(0,0,0,0.1); border-radius: 4px; font-weight: 600;">${code}</code></div>` : ''}
+      ${postalCode ? `<div style="font-size: 12px; color: var(--color-dist);">Kode Pos: <strong>${postalCode}</strong></div>` : ''}
+    </div>
+  `
 }
 
 function renderMapLocation(item, detail, boundary, boundaryError) {
@@ -203,40 +277,40 @@ function renderMapLocation(item, detail, boundary, boundaryError) {
 
   if (leafletPointCount(path) >= 3) {
     const polygon = window.L.polygon(path, {
-      color: '#d97706',
-      fillColor: '#fbbf24',
-      fillOpacity: 0.2,
-      weight: 2,
+      color: '#f59e0b',
+      fillColor: '#f59e0b',
+      fillOpacity: 0.25,
+      weight: 2.5,
     }).bindPopup(popup)
     state.mapLayers.addLayer(polygon)
     if (centroid) state.mapLayers.addLayer(window.L.marker(centroid).bindPopup(popup))
-    state.map.fitBounds(polygon.getBounds(), { padding: [24, 24] })
-    setMapStatus(`Boundary loaded for ${location.name || item.name || location.code}.`, 'success')
+    state.map.fitBounds(polygon.getBounds(), { padding: [32, 32], maxZoom: 14 })
+    setMapStatus(`Batas wilayah dimuat untuk ${location.name || item.name || location.code}.`, 'success')
     setMapMessage('')
     return
   }
 
   if (centroid) {
     state.mapLayers.addLayer(window.L.marker(centroid).bindPopup(popup))
-    state.map.setView(centroid, 12)
+    state.map.setView(centroid, 11)
     const boundaryMissing = !boundaryError || boundaryError.status === 404
-    setMapStatus(boundaryMissing ? 'Boundary unavailable; showing centroid.' : 'Boundary request failed; showing centroid.', 'warning')
+    setMapStatus(boundaryMissing ? 'Poligon batas belum tersedia; menampilkan titik koordinat.' : 'Permintaan poligon gagal; menampilkan titik koordinat.', 'warning')
     setMapMessage('')
     return
   }
 
   const message = boundaryError && boundaryError.status !== 404
-    ? `Boundary unavailable: ${boundaryError.message}`
-    : 'No boundary or coordinates available for this location.'
-  setMapStatus('Location cannot be displayed.', 'error')
+    ? `Batas wilayah tidak tersedia: ${boundaryError.message}`
+    : 'Koordinat atau batas poligon belum tersedia untuk wilayah ini.'
+  setMapStatus('Wilayah tidak dapat digambar pada peta.', 'error')
   setMapMessage(message, 'error')
 }
 
 function resetMap() {
   state.mapSelectionId += 1
   clearMapLayers()
-  setMapStatus('Select a location to view its map.')
-  setMapMessage('Select a location to view it on the map.')
+  setMapStatus('Pilih salah satu wilayah untuk menampilkan batas peta.')
+  setMapMessage('Pilih salah satu wilayah untuk menampilkan batas peta.')
 }
 
 async function selectLocation(item, node = null) {
@@ -252,13 +326,13 @@ async function selectLocation(item, node = null) {
   if (!map) return
 
   clearMapLayers()
-  setMapStatus(`Loading ${name}…`, 'loading')
-  setMapMessage('Loading location…', 'loading')
+  setMapStatus(`Memuat ${name}…`, 'loading')
+  setMapMessage('Memuat detail wilayah…', 'loading')
 
   try {
     const detail = await request(`/api/locations/${encodeURIComponent(code)}`, {}, true)
     if (selectionId !== state.mapSelectionId) return
-    if (!detail || Array.isArray(detail) || typeof detail !== 'object') throw new Error('Location detail unavailable')
+    if (!detail || Array.isArray(detail) || typeof detail !== 'object') throw new Error('Detail wilayah tidak tersedia')
     if (detail.postal_code && !item.postal_code) {
       item.postal_code = detail.postal_code
       updateTreePostalCode(node, detail.postal_code)
@@ -268,7 +342,7 @@ async function selectLocation(item, node = null) {
     let boundary = null
     let boundaryError = null
     if (detail.has_boundary) {
-      setMapStatus(`Loading boundary for ${detail.name || name}…`, 'loading')
+      setMapStatus(`Memuat batas poligon ${detail.name || name}…`, 'loading')
       try {
         boundary = await request(`/api/locations/${encodeURIComponent(code)}/boundary`, {}, true)
       } catch (error) {
@@ -281,8 +355,8 @@ async function selectLocation(item, node = null) {
   } catch (error) {
     if (selectionId !== state.mapSelectionId) return
     clearMapLayers()
-    setMapStatus(`Unable to load ${name}.`, 'error')
-    setMapMessage(error.message || 'Location detail unavailable.', 'error')
+    setMapStatus(`Gagal memuat ${name}.`, 'error')
+    setMapMessage(error.message || 'Detail wilayah tidak tersedia.', 'error')
   }
 }
 
@@ -295,7 +369,7 @@ function isActivationKey(event) {
 }
 
 function formatCount(value) {
-  return Number(value || 0).toLocaleString('en-US')
+  return Number(value || 0).toLocaleString('id-ID')
 }
 
 function animateCount(el, target, shouldAnimate) {
@@ -305,7 +379,7 @@ function animateCount(el, target, shouldAnimate) {
     return
   }
 
-  const duration = 900
+  const duration = 800
   const startTime = performance.now()
 
   function tick(now) {
@@ -334,7 +408,7 @@ async function loadStats() {
     setStats(stats)
   } catch (err) {
     state.statsLoaded = false
-    showToast(`Stats unavailable: ${err.message}`)
+    showToast(`Gagal memuat statistik: ${err.message}`)
   }
 }
 
@@ -366,13 +440,13 @@ function scopedMetric(label, value, tone) {
 
 function scopedInlineText(item, stats) {
   if (item.level === 'province') {
-    return `${formatCount(stats.regencies)} reg · ${formatCount(stats.districts)} dist · ${formatCount(stats.villages)} vil`
+    return `${formatCount(stats.regencies)} kab/kota · ${formatCount(stats.districts)} kec · ${formatCount(stats.villages)} desa`
   }
   if (item.level === 'regency') {
-    return `${formatCount(stats.districts)} dist · ${formatCount(stats.villages)} vil`
+    return `${formatCount(stats.districts)} kec · ${formatCount(stats.villages)} desa`
   }
   if (item.level === 'district') {
-    return `${formatCount(stats.villages)} vil`
+    return `${formatCount(stats.villages)} desa`
   }
   return ''
 }
@@ -419,23 +493,23 @@ function renderScopedStats(item, stats, node) {
 
   if (item.level === 'province') {
     els.selectionMetrics.innerHTML = [
-      scopedMetric('Regencies', stats.regencies, 'regency'),
-      scopedMetric('Districts', stats.districts, 'district'),
-      scopedMetric('Villages', stats.villages, 'village'),
+      scopedMetric('Kab/Kota', stats.regencies, 'regency'),
+      scopedMetric('Kecamatan', stats.districts, 'district'),
+      scopedMetric('Desa/Kel', stats.villages, 'village'),
     ].join('')
     return
   }
 
   if (item.level === 'regency') {
     els.selectionMetrics.innerHTML = [
-      scopedMetric('Districts', stats.districts, 'district'),
-      scopedMetric('Villages', stats.villages, 'village'),
+      scopedMetric('Kecamatan', stats.districts, 'district'),
+      scopedMetric('Desa/Kel', stats.villages, 'village'),
     ].join('')
     return
   }
 
   if (item.level === 'district') {
-    els.selectionMetrics.innerHTML = scopedMetric('Villages', stats.villages, 'village')
+    els.selectionMetrics.innerHTML = scopedMetric('Desa/Kel', stats.villages, 'village')
     return
   }
 
@@ -443,7 +517,7 @@ function renderScopedStats(item, stats, node) {
 }
 
 async function loadScopedStats(item, node, selectionId = null) {
-  setInlineStats(node, 'Counting…')
+  setInlineStats(node, 'Menghitung…')
   try {
     const stats = await request('/api/locations/stats', scopedStatsParams(item), true)
     if (selectionId !== null && selectionId !== state.mapSelectionId) return
@@ -452,29 +526,29 @@ async function loadScopedStats(item, node, selectionId = null) {
     if (selectionId !== null && selectionId !== state.mapSelectionId) return
     setInlineStats(node, '')
     setSelectionSummary(item, node)
-    els.selectionStatus.textContent = `Scoped counts unavailable: ${err.message}`
+    els.selectionStatus.textContent = `Hitungan wilayah tidak tersedia: ${err.message}`
     els.selectionStatus.hidden = false
   }
 }
 
-// ── Health ──
+// ── Health Check ──
 
 async function checkHealth() {
   els.healthDot.className = 'status-dot'
-  els.healthText.textContent = 'Checking…'
+  els.healthText.textContent = 'Memeriksa API…'
   try {
     await request('/healthz', {}, true)
     els.healthDot.className = 'status-dot ok'
     els.healthText.textContent = 'Service online'
   } catch {
     els.healthDot.className = 'status-dot fail'
-    els.healthText.textContent = 'Service unavailable'
+    els.healthText.textContent = 'Service offline'
   }
 }
 
 // ── Tree View ──
 
-const CHEVRON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>'
+const CHEVRON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>'
 
 function fetchChildren(item) {
   const p = codeFormatParams()
@@ -508,13 +582,13 @@ function createTreeNode(item) {
   const code = document.createElement('span')
   code.className = 'tree-code'
   code.textContent = item.code
-  code.title = 'Click to copy'
+  code.title = 'Klik untuk salin kode'
   code.setAttribute('role', 'button')
-  code.setAttribute('aria-label', `Copy location code ${item.full_code || item.code}`)
+  code.setAttribute('aria-label', `Salin kode wilayah ${item.full_code || item.code}`)
   code.tabIndex = 0
   const copyCode = (e) => {
     e.stopPropagation()
-    navigator.clipboard.writeText(item.full_code || item.code).then(() => showToast(`Copied: ${item.full_code || item.code}`))
+    navigator.clipboard.writeText(item.full_code || item.code).then(() => showToast(`Kode disalin: ${item.full_code || item.code}`))
   }
   code.addEventListener('click', copyCode)
   code.addEventListener('keydown', (e) => {
@@ -533,8 +607,7 @@ function createTreeNode(item) {
   const postalCode = document.createElement('span')
   postalCode.className = 'tree-postal-code'
   postalCode.textContent = item.postal_code || ''
-  postalCode.title = item.postal_code ? `Postal code ${item.postal_code}` : ''
-  postalCode.setAttribute('aria-label', item.postal_code ? `Postal code ${item.postal_code}` : '')
+  postalCode.title = item.postal_code ? `Kode pos ${item.postal_code}` : ''
 
   const badge = document.createElement('span')
   badge.className = `tree-badge tree-badge-${item.level}`
@@ -570,8 +643,7 @@ function updateTreePostalCode(node, value) {
   const postalCode = node.querySelector(':scope > .tree-row .tree-postal-code')
   if (!postalCode) return
   postalCode.textContent = value || ''
-  postalCode.title = value ? `Postal code ${value}` : ''
-  postalCode.setAttribute('aria-label', value ? `Postal code ${value}` : '')
+  postalCode.title = value ? `Kode pos ${value}` : ''
 }
 
 async function toggleNode(node, item) {
@@ -587,13 +659,11 @@ async function toggleNode(node, item) {
   node.classList.add('expanded')
   row.setAttribute('aria-expanded', 'true')
 
-  // already loaded
   if (children.dataset.loaded) return
 
-  // show loading
   const loading = document.createElement('div')
   loading.className = 'tree-loading'
-  loading.textContent = 'Loading…'
+  loading.textContent = 'Memuat wilayah turunan…'
   children.appendChild(loading)
   children.dataset.loaded = '1'
 
@@ -603,7 +673,7 @@ async function toggleNode(node, item) {
     if (!items.length) {
       const empty = document.createElement('div')
       empty.className = 'tree-empty'
-      empty.textContent = 'No data'
+      empty.textContent = 'Tidak ada data'
       children.appendChild(empty)
     } else {
       items.forEach(child => children.appendChild(createTreeNode(child)))
@@ -623,7 +693,7 @@ async function loadTree() {
   els.treeRoot.innerHTML = ''
   const loading = document.createElement('div')
   loading.className = 'tree-loading'
-  loading.textContent = 'Loading provinces…'
+  loading.textContent = 'Memuat daftar provinsi…'
   els.treeRoot.appendChild(loading)
 
   try {
@@ -655,7 +725,7 @@ function filterTree() {
   els.treeRowCount.textContent = visible
 }
 
-// ── Breadcrumb (simplified — shows nothing for tree, user navigates via tree) ──
+// ── Breadcrumb ──
 
 function breadcrumbPath(item, node) {
   const path = []
@@ -715,7 +785,7 @@ function scrollTreeNodeIntoView(node) {
   row?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
 }
 
-// ── Search ──
+// ── Search View ──
 
 function renderSearchRows(tbody, items) {
   tbody.innerHTML = ''
@@ -724,7 +794,7 @@ function renderSearchRows(tbody, items) {
     row.className = 'empty-row'
     const cell = document.createElement('td')
     cell.colSpan = 7
-    cell.textContent = 'No results'
+    cell.textContent = 'Tidak ada wilayah yang sesuai dengan pencarian.'
     row.appendChild(cell)
     tbody.appendChild(row)
     return
@@ -737,10 +807,10 @@ function renderSearchRows(tbody, items) {
       const value = item[col] || '-'
       if (idx === 0 && value !== '-') {
         cell.className = 'code-cell'
-        cell.title = 'Click to copy'
+        cell.title = 'Klik untuk salin kode'
         cell.addEventListener('click', (e) => {
           e.stopPropagation()
-          navigator.clipboard.writeText(value).then(() => showToast(`Copied: ${value}`))
+          navigator.clipboard.writeText(value).then(() => showToast(`Kode disalin: ${value}`))
         })
         cell.textContent = value
       } else if (col === 'level' && value !== '-') {
@@ -758,7 +828,7 @@ function renderSearchRows(tbody, items) {
     })
     const action = document.createElement('td')
     action.className = 'action-cell'
-    action.innerHTML = `<button class="browse-btn" title="Browse this location"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg> Browse</button>`
+    action.innerHTML = `<button class="browse-btn" title="Buka dan petakan wilayah ini"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" x2="9" y1="3" y2="18"/><line x1="15" x2="15" y1="6" y2="21"/></svg> Buka</button>`
     action.querySelector('.browse-btn').addEventListener('click', (e) => {
       e.stopPropagation()
       navigateToBrowse(item)
@@ -772,7 +842,6 @@ function renderSearchRows(tbody, items) {
 async function navigateToBrowse(item) {
   switchTab('browse')
   selectLocation(item)
-  // expand tree to the item
   const fc = item.full_code || item.code
   const parts = fc.split('.')
   let parentNode = els.treeRoot
@@ -784,17 +853,15 @@ async function navigateToBrowse(item) {
     if (!node.classList.contains('expanded')) {
       const row = node.querySelector(':scope > .tree-row')
       row.click()
-      // wait for load
       await new Promise(r => setTimeout(r, 600))
     }
     parentNode = node.querySelector(':scope > .tree-children')
     if (!parentNode) break
   }
 
-  // scroll to target
   const target = document.querySelector(`.tree-node[data-code="${fc}"]`)
   if (target) {
-    target.querySelector('.tree-row').style.background = 'var(--accent-light)'
+    target.querySelector('.tree-row').style.background = 'var(--accent-bg)'
     scrollTreeNodeIntoView(target)
     setTimeout(() => target.querySelector('.tree-row').style.background = '', 2000)
   }
@@ -809,7 +876,7 @@ function setTableLoading(tbody, columns) {
       const cell = document.createElement('td')
       const bar = document.createElement('div')
       bar.className = 'skeleton-cell'
-      bar.style.width = idx === 0 ? '60px' : `${60 + Math.random() * 40}%`
+      bar.style.width = idx === 0 ? '60px' : `${50 + Math.random() * 40}%`
       cell.appendChild(bar)
       row.appendChild(cell)
     })
@@ -823,29 +890,29 @@ function setTableError(tbody, columns, message) {
   row.className = 'error-row'
   const cell = document.createElement('td')
   cell.colSpan = columns.length
-  cell.innerHTML = `<svg class="error-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> ${message}`
+  cell.innerHTML = `⚠️ ${escapeHTML(message)}`
   row.appendChild(cell)
   tbody.appendChild(row)
 }
 
 async function runSearch() {
   const q = els.searchInput.value.trim()
-  if (!q) { showToast('Search query is required'); return }
+  if (!q) { showToast('Ketik kata kunci pencarian'); return }
   setTableLoading(els.searchRows, ['', '', '', '', '', '', ''])
-  els.searchMeta.textContent = 'Searching…'
+  els.searchMeta.textContent = 'Mencari wilayah…'
   try {
     const rows = await request('/api/locations/search', { q, limit: els.searchLimit.value || 25 })
     renderSearchRows(els.searchRows, rows)
     const isMobile = window.innerWidth <= 768
-    els.searchMeta.textContent = `${rows.length} result${rows.length === 1 ? '' : 's'}${isMobile ? ' — tap a row to browse' : ''}`
+    els.searchMeta.textContent = `${rows.length} hasil ditemukan${isMobile ? ' — sentuh baris untuk membuka peta' : ''}`
   } catch (err) {
-    els.searchMeta.textContent = 'Search failed'
+    els.searchMeta.textContent = 'Pencarian gagal'
     setTableError(els.searchRows, ['', '', '', '', '', '', ''], err.message)
     showToast(err.message)
   }
 }
 
-// ── Tabs ──
+// ── Tab Navigation ──
 
 function switchTab(tab) {
   state.activeTab = tab
@@ -860,17 +927,19 @@ function switchTab(tab) {
     v.hidden = !active
   })
   if (tab === 'browse') {
-    els.viewTitle.textContent = 'Browse Locations'
-    els.viewSubtitle.textContent = 'Explore provinces, regencies, districts, and villages.'
+    els.viewTitle.textContent = 'Eksplorasi Wilayah'
+    els.viewSubtitle.textContent = 'Pilih provinsi dan telusuri hingga tingkat desa/kelurahan serta koordinat peta.'
   }
   if (tab === 'search') {
-    els.viewTitle.textContent = 'Search Locations'
-    els.viewSubtitle.textContent = 'Search across all administrative levels.'
+    els.viewTitle.textContent = 'Pencarian Global'
+    els.viewSubtitle.textContent = 'Cari nama wilayah di seluruh tingkatan administratif Indonesia.'
   }
-  if (tab === 'browse' && state.map) requestAnimationFrame(() => state.map.invalidateSize())
+  if (tab === 'browse' && state.map) {
+    requestAnimationFrame(() => state.map.invalidateSize())
+  }
 }
 
-// ── Sidebar ──
+// ── Sidebar Controls ──
 
 function isMobileSidebar() {
   return window.matchMedia('(max-width: 768px)').matches
@@ -887,12 +956,8 @@ function setSidebarState(open) {
     els.sidebarOverlay.classList.remove('show')
   }
   els.openSidebar.setAttribute('aria-expanded', String(open))
-  els.openSidebar.setAttribute('aria-label', open ? 'Close sidebar' : 'Open sidebar')
+  els.openSidebar.setAttribute('aria-label', open ? 'Tutup sidebar' : 'Buka sidebar')
   els.collapseSidebar.setAttribute('aria-expanded', String(open))
-  els.collapseSidebar.setAttribute(
-    'aria-label',
-    open ? (isMobileSidebar() ? 'Close sidebar' : 'Collapse sidebar') : (isMobileSidebar() ? 'Open sidebar' : 'Expand sidebar'),
-  )
 }
 
 function openSidebar() { setSidebarState(true) }
@@ -904,9 +969,14 @@ function toggleSidebar() {
   setSidebarState(!open)
 }
 
-// ── Events ──
+// ── Event Bindings ──
 
 function bindEvents() {
+  // Theme Toggle
+  if (els.themeToggle) {
+    els.themeToggle.addEventListener('click', toggleTheme)
+  }
+
   els.apiBaseUrl.value = state.apiBaseUrl
   els.apiBaseUrl.placeholder = DEFAULT_API_BASE_URL
   els.resetApiUrl.addEventListener('click', () => {
@@ -915,29 +985,71 @@ function bindEvents() {
     localStorage.removeItem('location-service-api-base-url')
     checkHealth(); refreshData()
   })
+
   els.openSidebar.addEventListener('click', toggleSidebar)
   els.collapseSidebar.addEventListener('click', toggleSidebar)
   els.sidebarOverlay.addEventListener('click', closeSidebar)
+
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeSidebar()
+    if (e.key === 'Escape') {
+      closeSidebar()
+      if (els.responseDrawer.classList.contains('open')) {
+        els.responseDrawer.classList.remove('open')
+        els.responseDrawerToggle.setAttribute('aria-expanded', 'false')
+      }
+    }
+    // Shortcut '/' for quick search focus
+    if (e.key === '/' && document.activeElement !== els.quickSearch && document.activeElement !== els.searchInput) {
+      e.preventDefault()
+      if (state.activeTab === 'browse') {
+        els.quickSearch.focus()
+      } else {
+        els.searchInput.focus()
+      }
+    }
   })
+
   els.apiBaseUrl.addEventListener('change', () => {
     state.apiBaseUrl = els.apiBaseUrl.value.trim() || DEFAULT_API_BASE_URL
     localStorage.setItem('location-service-api-base-url', state.apiBaseUrl)
     checkHealth(); refreshData()
   })
+
   els.refreshHealth.addEventListener('click', checkHealth)
   els.tabs.forEach(b => b.addEventListener('click', () => { switchTab(b.dataset.tab); closeSidebar() }))
+
+  document.querySelectorAll('[data-mobile-panel]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const panel = button.dataset.mobilePanel
+      document.querySelectorAll('[data-mobile-panel]').forEach((tab) => {
+        const active = tab === button
+        tab.classList.toggle('active', active)
+        tab.setAttribute('aria-selected', String(active))
+      })
+      const contentGrid = document.querySelector('.content-grid')
+      contentGrid?.classList.toggle('mobile-show-map', panel === 'map')
+      if (panel === 'map' && state.map) {
+        requestAnimationFrame(() => state.map.invalidateSize())
+      }
+    })
+  })
+
   els.shortCodeToggle.addEventListener('change', () => {
     state.shortCodes = els.shortCodeToggle.checked
     loadTree()
   })
+
   els.responseDrawerToggle.addEventListener('click', () => {
     const open = els.responseDrawer.classList.toggle('open')
     els.responseDrawerToggle.setAttribute('aria-expanded', String(open))
     if (open) els.responseDrawer.classList.remove('has-unread-response')
   })
-  els.reloadData.addEventListener('click', refreshData)
+
+  els.reloadData.addEventListener('click', () => {
+    els.reloadData.classList.add('loading')
+    refreshData().finally(() => els.reloadData.classList.remove('loading'))
+  })
+
   els.resetData.addEventListener('click', () => {
     state.shortCodes = false
     els.shortCodeToggle.checked = false
@@ -951,7 +1063,7 @@ function bindEvents() {
     resetSelectionSummary()
     history.replaceState(null, '', location.pathname)
     refreshData()
-    showToast('Reset')
+    showToast('Tampilan berhasil direset')
   })
 
   let qst
@@ -962,27 +1074,38 @@ function bindEvents() {
     qst = setTimeout(() => { els.searchInput.value = q; switchTab('search'); runSearch() }, 350)
   })
   els.quickSearch.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { clearTimeout(qst); const q = els.quickSearch.value.trim(); if (!q) return; els.searchInput.value = q; switchTab('search'); runSearch() }
+    if (e.key === 'Enter') {
+      clearTimeout(qst)
+      const q = els.quickSearch.value.trim()
+      if (!q) return
+      els.searchInput.value = q
+      switchTab('search')
+      runSearch()
+    }
   })
 
   els.treeFilter.addEventListener('input', filterTree)
   els.runSearch.addEventListener('click', runSearch)
   els.searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') runSearch() })
   els.searchLimit.addEventListener('keydown', (e) => { if (e.key === 'Enter') runSearch() })
+
   els.copyEndpoint.addEventListener('click', async () => {
     await navigator.clipboard.writeText(els.responseMethod.href)
-    showToast('URL copied')
+    showToast('URL Endpoint berhasil disalin')
   })
+
   els.copyResponse.addEventListener('click', async () => {
     await navigator.clipboard.writeText(JSON.stringify(state.lastResponse, null, 2))
-    showToast('Response copied')
+    showToast('JSON output berhasil disalin')
   })
+
   setSidebarState(!isMobileSidebar())
 }
 
-// ── Init ──
+// ── App Initialization ──
 
 async function init() {
+  applyTheme(state.currentTheme)
   bindEvents()
   switchTab('browse')
   resetSelectionSummary()
