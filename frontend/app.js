@@ -11,7 +11,7 @@ const state = {
   mapTileLayer: null,
   mapLayers: null,
   mapSelectionId: 0,
-  currentTheme: localStorage.getItem('location-service-theme') || 'dark',
+  currentTheme: 'light',
 }
 
 const els = {
@@ -37,6 +37,7 @@ const els = {
   districtCount: document.getElementById('districtCount'),
   villageCount: document.getElementById('villageCount'),
   selectionSummary: document.getElementById('selectionSummary'),
+  selectionIcon: document.getElementById('selectionIcon'),
   selectionTitle: document.getElementById('selectionTitle'),
   selectionLevel: document.getElementById('selectionLevel'),
   selectionSubtitle: document.getElementById('selectionSubtitle'),
@@ -63,6 +64,7 @@ const els = {
   copyResponse: document.getElementById('copyResponse'),
   responseDrawer: document.getElementById('responseDrawer'),
   responseDrawerToggle: document.getElementById('responseDrawerToggle'),
+  responseDrawerBody: document.getElementById('responseDrawerBody'),
   drawerStatusPill: document.getElementById('drawerStatusPill'),
   toast: document.getElementById('toast'),
   openSidebar: document.getElementById('openSidebar'),
@@ -129,6 +131,21 @@ function setLastResponse(requestLine, payload, statusCode = 200) {
   els.responseDrawer.classList.add('has-data')
   if (!els.responseDrawer.classList.contains('open')) {
     els.responseDrawer.classList.add('has-unread-response')
+  }
+}
+
+function setResponseDrawerState(open) {
+  const wasOpen = els.responseDrawer.classList.contains('open')
+  els.responseDrawer.classList.toggle('open', open)
+  els.responseDrawerToggle.setAttribute('aria-expanded', String(open))
+  els.responseDrawerToggle.setAttribute('aria-label', open ? 'Tutup panel respon API terakhir' : 'Buka panel respon API terakhir')
+  els.responseDrawerToggle.title = open ? 'Tutup panel respon API terakhir' : 'Buka panel respon API terakhir'
+  els.responseDrawerBody.setAttribute('aria-hidden', String(!open))
+
+  if (open) {
+    els.responseDrawer.classList.remove('has-unread-response')
+  } else if (wasOpen && els.responseDrawerBody.contains(document.activeElement)) {
+    els.responseDrawerToggle.focus()
   }
 }
 
@@ -430,10 +447,14 @@ function scopedStatsParams(item) {
 }
 
 function scopedMetric(label, value, tone) {
+  const icon = tone === 'regency' ? '🏙️' : tone === 'district' ? '🏘️' : '🏡'
   return `
     <div class="selection-metric selection-metric-${tone}">
-      <span>${label}</span>
-      <strong>${formatCount(value)}</strong>
+      <span class="metric-icon-mini">${icon}</span>
+      <div class="metric-detail">
+        <span class="metric-title">${label}</span>
+        <strong class="metric-number">${formatCount(value)}</strong>
+      </div>
     </div>
   `
 }
@@ -464,19 +485,39 @@ function resetSelectionSummary() {
 }
 
 function setSelectionSummary(item, node) {
-  const levelLabel = item.level.charAt(0).toUpperCase() + item.level.slice(1)
+  const level = item.level || 'province'
+  const levelLabel = level.charAt(0).toUpperCase() + level.slice(1)
   const code = item.full_code || item.code || '—'
   const postal = item.postal_code || ''
+  
+  const iconMap = {
+    province: '🗺️',
+    regency: '🏙️',
+    district: '🏘️',
+    village: '🏡',
+  }
+  const icon = iconMap[level] || '📍'
+
   setInlineStats(node, '')
   els.selectionSummary.classList.remove('is-hidden')
+  els.selectionSummary.dataset.level = level
   els.selectionTitle.textContent = item.name || code
   els.selectionLevel.textContent = levelLabel
+  if (els.selectionIcon) els.selectionIcon.textContent = icon
   els.selectionCode.textContent = code
   els.selectionPostal.textContent = postal || '—'
   els.selectionPostalToken.hidden = !postal
   els.selectionStatus.textContent = ''
   els.selectionStatus.hidden = true
-  els.selectionMetrics.innerHTML = ''
+
+  if (level === 'village') {
+    els.selectionMetrics.innerHTML = `
+      <div class="selection-empty-metrics">
+        <span>🏡</span>
+        <span>Tingkat Terendah (Desa/Kelurahan)</span>
+      </div>
+    `
+  }
 }
 
 function setInlineStats(node, text) {
@@ -510,6 +551,16 @@ function renderScopedStats(item, stats, node) {
 
   if (item.level === 'district') {
     els.selectionMetrics.innerHTML = scopedMetric('Desa/Kel', stats.villages, 'village')
+    return
+  }
+
+  if (item.level === 'village') {
+    els.selectionMetrics.innerHTML = `
+      <div class="selection-empty-metrics">
+        <span>🏡</span>
+        <span>Tingkat Terendah (Desa/Kelurahan)</span>
+      </div>
+    `
     return
   }
 
@@ -958,6 +1009,12 @@ function setSidebarState(open) {
   els.openSidebar.setAttribute('aria-expanded', String(open))
   els.openSidebar.setAttribute('aria-label', open ? 'Tutup sidebar' : 'Buka sidebar')
   els.collapseSidebar.setAttribute('aria-expanded', String(open))
+  const collapseLabel = isMobileSidebar()
+    ? (open ? 'Tutup Sidebar' : 'Buka Sidebar')
+    : (open ? 'Ciutkan Sidebar' : 'Perluas Sidebar')
+  els.collapseSidebar.setAttribute('aria-label', collapseLabel)
+  const collapseText = els.collapseSidebar.querySelector('span')
+  if (collapseText) collapseText.textContent = collapseLabel
 }
 
 function openSidebar() { setSidebarState(true) }
@@ -994,8 +1051,7 @@ function bindEvents() {
     if (e.key === 'Escape') {
       closeSidebar()
       if (els.responseDrawer.classList.contains('open')) {
-        els.responseDrawer.classList.remove('open')
-        els.responseDrawerToggle.setAttribute('aria-expanded', 'false')
+        setResponseDrawerState(false)
       }
     }
     // Shortcut '/' for quick search focus
@@ -1016,7 +1072,10 @@ function bindEvents() {
   })
 
   els.refreshHealth.addEventListener('click', checkHealth)
-  els.tabs.forEach(b => b.addEventListener('click', () => { switchTab(b.dataset.tab); closeSidebar() }))
+  els.tabs.forEach(b => b.addEventListener('click', () => {
+    switchTab(b.dataset.tab)
+    if (isMobileSidebar()) closeSidebar()
+  }))
 
   document.querySelectorAll('[data-mobile-panel]').forEach((button) => {
     button.addEventListener('click', () => {
@@ -1040,9 +1099,7 @@ function bindEvents() {
   })
 
   els.responseDrawerToggle.addEventListener('click', () => {
-    const open = els.responseDrawer.classList.toggle('open')
-    els.responseDrawerToggle.setAttribute('aria-expanded', String(open))
-    if (open) els.responseDrawer.classList.remove('has-unread-response')
+    setResponseDrawerState(!els.responseDrawer.classList.contains('open'))
   })
 
   els.reloadData.addEventListener('click', () => {
@@ -1098,6 +1155,26 @@ function bindEvents() {
     await navigator.clipboard.writeText(JSON.stringify(state.lastResponse, null, 2))
     showToast('JSON output berhasil disalin')
   })
+
+  // Selection Card Actions
+  const copySelectionBtn = document.getElementById('copySelectionCodeBtn')
+  if (copySelectionBtn) {
+    copySelectionBtn.addEventListener('click', () => {
+      const code = els.selectionCode.textContent.trim()
+      if (code && code !== '—') {
+        navigator.clipboard.writeText(code).then(() => showToast(`Kode wilayah disalin: ${code}`))
+      }
+    })
+  }
+
+  const closeSelectionBtn = document.getElementById('closeSelectionBtn')
+  if (closeSelectionBtn) {
+    closeSelectionBtn.addEventListener('click', () => {
+      resetSelectionSummary()
+      resetMap()
+      showToast('Seleksi wilayah ditutup')
+    })
+  }
 
   setSidebarState(!isMobileSidebar())
 }
