@@ -50,6 +50,7 @@ const els = {
   mapMessage: document.getElementById('mapMessage'),
   locationMap: document.getElementById('locationMap'),
   treeRoot: document.getElementById('treeRoot'),
+  treeWrap: document.getElementById('treeWrap'),
   treeFilter: document.getElementById('treeFilter'),
   treeRowCount: document.getElementById('treeRowCount'),
   breadcrumb: document.getElementById('breadcrumb'),
@@ -431,9 +432,10 @@ async function loadStats() {
 
 async function refreshData() {
   resetMap()
-  await loadStats()
   resetSelectionSummary()
-  await loadTree()
+  const treeRequest = loadTree()
+  await loadStats()
+  await treeRequest
 }
 
 function scopedStatsParams(item) {
@@ -471,6 +473,7 @@ function scopedInlineText(item, stats) {
 }
 
 function resetSelectionSummary() {
+  els.breadcrumb.innerHTML = ''
   els.selectionSummary.classList.add('is-hidden')
   els.selectionTitle.textContent = 'Indonesia'
   els.selectionLevel.textContent = ''
@@ -740,6 +743,7 @@ async function toggleNode(node, item) {
 
 async function loadTree() {
   els.treeRoot.innerHTML = ''
+  els.treeWrap.scrollTop = 0
   const loading = document.createElement('div')
   loading.className = 'tree-loading'
   loading.textContent = 'Memuat daftar provinsi…'
